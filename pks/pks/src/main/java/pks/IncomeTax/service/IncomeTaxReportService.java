@@ -15,6 +15,8 @@ import java.time.LocalDate;
 @Service
 public class IncomeTaxReportService {
 
+    private static final float EXTRA_PAGE_HEIGHT = 180f;
+
     private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
     }
 
@@ -26,7 +28,11 @@ public class IncomeTaxReportService {
 
         try (PDDocument doc = new PDDocument()) {
             Fonts fonts = loadFonts(doc);
-            PDPage page = new PDPage(PDRectangle.A4);
+            PDRectangle pageSize = new PDRectangle(
+                    PDRectangle.A4.getWidth(),
+                    PDRectangle.A4.getHeight() + EXTRA_PAGE_HEIGHT
+            );
+            PDPage page = new PDPage(pageSize);
             doc.addPage(page);
 
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
