@@ -49,8 +49,8 @@ public class IncomeTaxReportService {
 
                 /* ---------- HEADER ---------- */
                 center(cs, fonts.bold(), 12, pw, ph - 60, "Schedule of Income Tax");
-                center(cs, fonts.normal(), 9, pw, ph - 78, "(Fill in four copies)");
-                center(cs, fonts.normal(), 9, pw, ph - 96,
+                center(cs, fonts.normal(), 9, pw, ph - 70, "(Fill in four copies)");
+                center(cs, fonts.normal(), 9, pw, ph - 86,
                         "Financial Year 2025-2026 (Assessment Year 2026-2027)");
 
                 float y = ph - 110;
