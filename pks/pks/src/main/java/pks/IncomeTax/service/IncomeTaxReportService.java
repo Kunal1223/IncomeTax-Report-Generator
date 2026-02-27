@@ -16,6 +16,7 @@ import java.time.LocalDate;
 public class IncomeTaxReportService {
 
     private static final float EXTRA_PAGE_HEIGHT = 180f;
+    private static final float AFTER_HEADER_GAP = 10f;
 
     private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
     }
@@ -48,8 +49,8 @@ public class IncomeTaxReportService {
 
                 /* ---------- HEADER ---------- */
                 center(cs, fonts.bold(), 12, pw, ph - 60, "Schedule of Income Tax");
-                center(cs, fonts.normal(), 9, pw, ph - 65, "(Fill in four copies)");
-                center(cs, fonts.normal(), 9, pw, ph - 80,
+                center(cs, fonts.normal(), 9, pw, ph - 78, "(Fill in four copies)");
+                center(cs, fonts.normal(), 9, pw, ph - 96,
                         "Financial Year 2025-2026 (Assessment Year 2026-2027)");
 
                 float y = ph - 110;
@@ -67,7 +68,7 @@ public class IncomeTaxReportService {
                 /* ---------- SECTION A ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "(A) Income from Salary :");
-                y -= 20;
+                y -= (14 + AFTER_HEADER_GAP); // 14 = header height
 
                 y = money(cs, fonts, y, "(1) Basic Salary (01-03-2025 to 28-02-2026):", 3423423, false);
                 y = money(cs, fonts, y, "(2) Dearness Allowance:", 123456, false);
@@ -85,7 +86,7 @@ public class IncomeTaxReportService {
                 /* ---------- SECTION B ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "(B) Income from House Property :");
-                y -= 20;
+                y -= (14 + AFTER_HEADER_GAP);
 
                 y = money(cs, fonts, y, "(i) Income from House Rent", 123456789L, false);
                 y = money(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", 12345678L, false);
@@ -94,7 +95,7 @@ public class IncomeTaxReportService {
                 /* ---------- SECTION C ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "(C) Income from Other Sources :");
-                y -= 20;
+                y -= (14 + AFTER_HEADER_GAP);
 
                 y = money(cs, fonts, y, "(i) Interest on Saving A/c of Bank/Post Office", 12345678L, false);
                 y = money(cs, fonts, y, "(ii) Interest on Fixed Deposit / Recurring Deposit / KVP etc.", 123456789L, false);
@@ -104,13 +105,13 @@ public class IncomeTaxReportService {
                 /* ---------- GROSS TOTAL ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "GROSS TOTAL INCOME");
-                y -= 22;
+                y -= (14 + AFTER_HEADER_GAP);
                 y = money(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO Rs. 10/-)", 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L - 123456789L + 123456789L + 12345678L + 12345678L + 123456789L + 1234567890L, true);
 
                 /* ---------- TAX TABLE ---------- */
                 y -= 10;
                 blackHeader(cs, fonts, lx, y, 520, "CALCULATION OF INCOME TAX PAYABLE");
-                y -= 18;
+                y -= (14 + AFTER_HEADER_GAP);
                 y = drawTaxTable(cs, fonts, lx, y, e);
 
                 /* ---------- FOOT NOTES ---------- */
