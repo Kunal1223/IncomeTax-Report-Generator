@@ -73,6 +73,28 @@ export class LandingPageComponent {
           this.saving = false;
           console.log('Landing form submitted', this.form.value, res);
           alert('Details saved successfully.');
+          // Trigger report generation and download
+          const id = res && res.id ? res.id : null;
+          if (id) {
+            this.landingService.generateReport(id).subscribe({
+              next: (r: any) => {
+                const downloadUrl = r && r.downloadUrl ? r.downloadUrl : null;
+                if (downloadUrl) {
+                  const full = this.landingService.serverRoot() + downloadUrl;
+                  const a = document.createElement('a');
+                  a.href = full;
+                  a.target = '_blank';
+                  a.rel = 'noopener';
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                }
+              },
+              error: (err2) => {
+                console.error('Report generation failed', err2);
+              }
+            });
+          }
           // Reset form and captcha for a fresh entry
           this.form.reset();
           this.captchaVerified = false;

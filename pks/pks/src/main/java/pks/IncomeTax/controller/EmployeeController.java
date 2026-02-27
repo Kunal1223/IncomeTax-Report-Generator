@@ -2,13 +2,20 @@ package pks.IncomeTax.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pks.IncomeTax.model.Employee;
 import pks.IncomeTax.repository.EmployeeRepository;
+import pks.IncomeTax.service.ReportService;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/employee")
@@ -17,9 +24,11 @@ public class EmployeeController {
     private static final Logger logger = LoggerFactory.getLogger(EmployeeController.class);
 
     private final EmployeeRepository repo;
+    private final ReportService reportService;
 
-    public EmployeeController(EmployeeRepository repo) {
+    public EmployeeController(EmployeeRepository repo, ReportService reportService) {
         this.repo = repo;
+        this.reportService = reportService;
     }
 
     @PostMapping
@@ -37,5 +46,35 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public ResponseEntity<Employee> get(@PathVariable Long id) {
         return repo.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/report")
+    public ResponseEntity<Map<String, String>> generateReport(@PathVariable Long id) {
+        return repo.findById(id).map(emp -> {
+            try {
+                String filename = reportService.generateExcelReport(emp);
+                String downloadUrl = "/api/employee/report/download/" + filename;
+                return ResponseEntity.ok(Map.of("downloadUrl", downloadUrl));
+            } catch (Exception e) {
+                logger.error("Failed to generate report", e);
+                return ResponseEntity.status(500).body(Map.of("error", "Failed to generate report"));
+            }
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/report/download/{filename:.+}")
+    public ResponseEntity<Resource> downloadReport(@PathVariable String filename) {
+        try {
+            Path file = Path.of("reports").resolve(filename).toAbsolutePath();
+            UrlResource resource = new UrlResource(file.toUri());
+            if (!resource.exists()) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            logger.error("Failed to serve report", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

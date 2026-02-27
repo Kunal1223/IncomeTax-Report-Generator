@@ -12,4 +12,12 @@ export class LandingService {
   saveEmployee(details: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/employee`, details);
   }
+
+  generateReport(employeeId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/employee/${employeeId}/report`, {});
+  }
+
+  serverRoot(): string {
+    return this.baseUrl.replace(/\/api$/, '');
+  }
 }
