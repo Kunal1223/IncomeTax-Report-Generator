@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { CaptchaComponent } from '../captcha/captcha.component';
@@ -17,6 +17,7 @@ export class LandingPageComponent {
   form: any;
   financialYears: string[] = [];
   saving = false;
+  @ViewChild(CaptchaComponent) captchaComp?: CaptchaComponent;
 
   constructor(private fb: FormBuilder, private landingService: LandingService) {
     this.financialYears = this.getFinancialYears(3);
@@ -68,15 +69,20 @@ export class LandingPageComponent {
     if (this.form.valid) {
       this.saving = true;
       this.landingService.saveEmployee(this.form.value).subscribe({
-        next: () => {
+        next: (res) => {
           this.saving = false;
-          console.log('Landing form submitted', this.form.value);
+          console.log('Landing form submitted', this.form.value, res);
           alert('Details saved successfully.');
+          // Reset form and captcha for a fresh entry
+          this.form.reset();
+          this.captchaVerified = false;
+          this.captchaComp?.generate();
         },
         error: (err) => {
           this.saving = false;
           console.error('Save failed', err);
-          alert('Failed to save the details.');
+          const msg = err?.error?.message || err?.message || 'Failed to save the details.';
+          alert('Failed to save the details: ' + msg);
         }
       });
     } else {
