@@ -1,0 +1,10 @@
+<div class="captcha-box">
+  <div class="question">Prove you're human: <strong>{{ question }}</strong></div>
+  <div class="controls">
+    <input type="number" [(ngModel)]="answerInput" placeholder="Enter answer" />
+    <button type="button" (click)="check()">Verify</button>
+    <button type="button" class="small" (click)="generate()">Refresh</button>
+  </div>
+    <div class="status" *ngIf="success">Verified ✓</div>
+    <div class="captcha-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+</div>

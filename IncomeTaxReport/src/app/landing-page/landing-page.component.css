@@ -1,0 +1,70 @@
+.landing-container {
+  max-width: 880px;
+  margin: 24px auto;
+  padding: 18px;
+  border-radius: 8px;
+  background: transparent;
+}
+.landing-container h2 {
+  margin-top: 0;
+}
+.section {
+  margin-bottom: 16px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.95rem;
+}
+label input, label select {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #cdcaca;
+  font-size: 0.95rem;
+  margin-top: 10px;
+}
+label input::placeholder { color: rgba(234,240,255,0.55) }
+
+/* make dropdown background white with readable text */
+label select {
+  background: rgba(255,255,255,0.04);
+  color: rgba(234,240,255,0.55);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+label select option { color: #111827 }
+.actions { text-align: right; }
+button { padding: 10px 14px; border-radius: 6px; background: #1976d2; color: white; border: 0; cursor: pointer; }
+
+.title-center { text-align:center; margin:8px 0 18px }
+.main-title { font-size:2rem; margin:6px 0; color: #bcbbbb }
+.sub-title { font-size:1.1rem; margin:0 0 12px; color: #b7b7b8 }
+
+.it-card { padding:22px; border-radius:10px }
+.group { border:1px solid rgba(255,255,255,0.06); padding:14px; border-radius:8px; margin-bottom:20px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) }
+.group legend{ padding:0 8px; font-weight:700; color:#eaf0ff }
+.grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px }
+
+.primary{ background:linear-gradient(90deg,#1976d2,#4a90e2); padding:12px 18px; border-radius:8px; color:white; border:0 }
+
+@media (max-width:700px){
+  .grid{ grid-template-columns:1fr }
+  .main-title{ font-size:1.4rem }
+  .it-card{ padding:14px }
+  .group{ margin-bottom:14px }
+  .primary{ width:100% }
+}
+
+input.ng-touched.ng-invalid, select.ng-touched.ng-invalid {
+  border-color: #d32f2f;
+}
+.error { color: #d32f2f; font-size: 0.85rem; margin-top: 4px; display: block; }
+
+.captcha-section { margin: 12px 0; }
+.captcha-fallback .link { display:none }
+.fallback-box { display:none }
+
+@media (max-width: 700px) {
+  .section { grid-template-columns: 1fr; }
+}

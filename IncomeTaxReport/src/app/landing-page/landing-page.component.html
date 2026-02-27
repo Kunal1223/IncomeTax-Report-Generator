@@ -1,0 +1,80 @@
+<div class="page-wrap">
+  <div class="title-center">
+    <h1 class="main-title">Income Tax Report Generator</h1>
+    <h2 class="sub-title">Income Tax — Employee Details</h2>
+  </div>
+
+  <div class="it-card">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <section class="section">
+      <fieldset class="group">
+        <legend>Employee Information</legend>
+        <div class="grid">
+          <label>Full name
+            <input formControlName="name" placeholder="Enter full name" />
+            <span class="error" *ngIf="f.name?.invalid && f.name?.touched">Full name is required</span>
+          </label>
+          <label>Post
+            <input formControlName="post" placeholder="Post / Designation" />
+            <span class="error" *ngIf="f.post?.invalid && f.post?.touched">Post is required</span>
+          </label>
+          <label>Department
+            <input formControlName="department" placeholder="Employment department" />
+            <span class="error" *ngIf="f.department?.invalid && f.department?.touched">Department is required</span>
+          </label>
+          <label>PAN
+            <input formControlName="pan" placeholder="PAN number" />
+            <span class="error" *ngIf="f.pan?.invalid && f.pan?.touched">PAN is required</span>
+          </label>
+          <label>Employee ID
+            <input formControlName="employeeId" placeholder="Employee ID" />
+            <span class="error" *ngIf="f.employeeId?.invalid && f.employeeId?.touched">Employee ID is required</span>
+          </label>
+        </div>
+      </fieldset>
+    </section>
+    <section class="section">
+      <fieldset class="group">
+        <legend>Salary Details</legend>
+        <div class="grid">
+          <label>Basic Pay
+            <input type="number" formControlName="basicPay" placeholder="Enter basic pay" />
+            <span class="error" *ngIf="f.basicPay?.invalid && f.basicPay?.touched">Basic Pay is required (0 allowed)</span>
+          </label>
+          <label>DA
+            <input type="number" formControlName="da" placeholder="Enter DA" />
+            <span class="error" *ngIf="f.da?.invalid && f.da?.touched">DA is required</span>
+          </label>
+          <label>TA
+            <input type="number" formControlName="ta" placeholder="Enter TA" />
+            <span class="error" *ngIf="f.ta?.invalid && f.ta?.touched">TA is required</span>
+          </label>
+          <label>HRA
+            <input type="number" formControlName="hra" placeholder="Enter HRA" />
+            <span class="error" *ngIf="f.hra?.invalid && f.hra?.touched">HRA is required</span>
+          </label>
+          <label>Medical Allowances
+            <input type="number" formControlName="medicalAllowances" placeholder="Enter medical allowances" />
+            <span class="error" *ngIf="f.medicalAllowances?.invalid && f.medicalAllowances?.touched">Medical Allowances is required (0 allowed)</span>
+          </label>
+          <label>Financial Year
+            <select formControlName="financialYear">
+              <option value="" disabled selected>Please select financial year</option>
+              <option *ngFor="let fy of financialYears" [value]="fy">{{ fy }}</option>
+            </select>
+            <span class="error" *ngIf="f.financialYear?.invalid && f.financialYear?.touched">Please select financial year</span>
+          </label>
+        </div>
+      </fieldset>
+    </section>
+    <div class="captcha-section">
+      <captcha-widget (verified)="onCaptchaVerified($event)"></captcha-widget>
+      <div class="error" *ngIf="captchaWarning">{{ captchaWarning }}</div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary" [disabled]="saving">{{ saving ? 'Saving...' : 'Save & Generate Report' }}</button>
+    </div>
+  </form>
+  </div>
+</div>
