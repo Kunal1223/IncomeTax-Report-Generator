@@ -47,7 +47,7 @@ public class IncomeTaxReportService {
                 cs.setLineDashPattern(new float[]{}, 0);
 
                 /* ---------- HEADER ---------- */
-                center(cs, fonts.bold(), 12, pw, ph - 50, "Schedule of Income Tax");
+                center(cs, fonts.bold(), 12, pw, ph - 60, "Schedule of Income Tax");
                 center(cs, fonts.normal(), 9, pw, ph - 65, "(Fill in four copies)");
                 center(cs, fonts.normal(), 9, pw, ph - 80,
                         "Financial Year 2025-2026 (Assessment Year 2026-2027)");
@@ -196,16 +196,31 @@ public class IncomeTaxReportService {
 
     /* ===================== HELPERS ===================== */
 
-    private void blackHeader(PDPageContentStream cs, Fonts fonts, float x, float y, float w, String text) throws Exception {
-        float h = 14;
+    private void blackHeader(PDPageContentStream cs, Fonts fonts,
+                         float x, float y, float w, String text) throws Exception {
+
+        float h = 14f;
+        float fontSize = 9f;
+        float bottomPadding = 2f; // space below text
+
+        /* ---- Draw black background ---- */
         cs.setNonStrokingColor(0f, 0f, 0f);
         cs.addRect(x, y - h, w, h);
         cs.fill();
 
+        /* ---- Calculate vertical centering ---- */
+        PDFont font = fonts.bold();
+        float ascent = font.getFontDescriptor().getAscent() / 1000 * fontSize;
+        float descent = font.getFontDescriptor().getDescent() / 1000 * fontSize;
+
+        float textHeight = ascent - descent;
+        float textY = y - h + (h - textHeight) / 2 - descent + bottomPadding;
+
+        /* ---- Draw text ---- */
         cs.setNonStrokingColor(1f, 1f, 1f);
         cs.beginText();
-        cs.setFont(fonts.bold(), 9);
-        cs.newLineAtOffset(x + 4, y - h / 2 + 3);
+        cs.setFont(font, fontSize);
+        cs.newLineAtOffset(x + 6, textY);
         cs.showText(text);
         cs.endText();
 
