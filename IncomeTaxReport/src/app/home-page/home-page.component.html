@@ -1,0 +1,34 @@
+<div class="page-wrap">
+  <div class="hero-card">
+    <div class="hero-left">
+      <h1 class="hero-title">Tax<br />return</h1>
+      <h3 class="hero-subtitle">Generate your income tax report in minutes.</h3>
+      <p class="hero-text">
+        Enter employee and salary details, then download a ready-to-use PDF report.
+      </p>
+
+      <div class="hero-actions">
+        <button type="button" class="primary" (click)="goToNewForm()">Fill New Form</button>
+        <button type="button" class="secondary" (click)="toggleEdit()">Edit / Update</button>
+      </div>
+
+      <div class="search-row" *ngIf="editOpen">
+        <input
+          class="search-input"
+          [(ngModel)]="searchPan"
+          name="searchPan"
+          placeholder="Please enter the PAN number" />
+        <button type="button" class="search-btn" (click)="searchAndEdit()" [disabled]="searching">
+          {{ searching ? 'Searching...' : 'Search' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <img
+        class="hero-img"
+        src="https://png.pngtree.com/png-vector/20210601/ourmid/pngtree-tax-consultant-payment-analysis-data-png-image_3401114.jpg"
+        alt="Tax return illustration" />
+    </div>
+  </div>
+</div>

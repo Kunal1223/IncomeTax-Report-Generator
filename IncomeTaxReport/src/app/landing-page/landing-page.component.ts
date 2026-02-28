@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { CaptchaComponent } from '../captcha/captcha.component';
 import { LandingService } from '../services/landing.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'landing-page',
@@ -17,12 +18,13 @@ export class LandingPageComponent {
   form: any;
   financialYears: string[] = [];
   saving = false;
-  searching = false;
-  mode: 'new' | 'edit' = 'new';
-  searchPan = '';
   @ViewChild(CaptchaComponent) captchaComp?: CaptchaComponent;
 
-  constructor(private fb: FormBuilder, private landingService: LandingService) {
+  constructor(
+    private fb: FormBuilder,
+    private landingService: LandingService,
+    private route: ActivatedRoute
+  ) {
     this.financialYears = this.getFinancialYears(3);
 
     this.form = this.fb.group({
@@ -37,11 +39,28 @@ export class LandingPageComponent {
       basicPay: [null, [Validators.required, Validators.min(0)]],
       da: [null, [Validators.required, Validators.min(0)]],
       ta: [null, [Validators.required, Validators.min(0)]],
+      daOnTransportAllowance: [null, [Validators.min(0)]],
       hra: [null, [Validators.required, Validators.min(0)]],
       medicalAllowances: [null, [Validators.required, Validators.min(0)]],
+
+      specialPay: [null, [Validators.min(0)]],
+      arrearDearnessAllowance: [null, [Validators.min(0)]],
+      arrearPayAndAllowances: [null, [Validators.min(0)]],
+
+      incomeFromHouseRent: [null, [Validators.min(0)]],
+      interestOnHousingLoan: [null, [Validators.min(0)]],
+
+      interestOnSaving: [null, [Validators.min(0)]],
+      interestOnFixedDeposit: [null, [Validators.min(0)]],
+      anyOtherIncome: [null, [Validators.min(0)]],
       financialYear: ['', Validators.required]
     });
     // no fallback captcha in use
+
+    const panFromUrl = (this.route.snapshot.queryParamMap.get('pan') || '').trim();
+    if (panFromUrl) {
+      this.prefillByPan(panFromUrl);
+    }
   }
 
   get f() {
@@ -104,12 +123,7 @@ export class LandingPageComponent {
               }
             });
           }
-          // Reset only for "new" mode; for edit mode keep the loaded data.
-          if (this.mode === 'new') {
-            this.form.reset();
-            this.captchaVerified = false;
-            this.captchaComp?.generate();
-          }
+            // Keep the form filled after save/update.
         },
         error: (err) => {
           this.saving = false;
@@ -126,32 +140,12 @@ export class LandingPageComponent {
     }
   }
 
-  selectNewMode() {
-    this.mode = 'new';
-    this.searchPan = '';
-    this.form.reset();
-    this.captchaVerified = false;
-    this.captchaComp?.generate();
-    alert('Please fill the form');
-  }
+  private prefillByPan(pan: string) {
+    const value = (pan || '').trim();
+    if (!value) return;
 
-  selectEditMode() {
-    this.mode = 'edit';
-    this.searchPan = '';
-    // Keep current form values until a search loads an employee.
-  }
-
-  onSearchByPan() {
-    const pan = (this.searchPan || '').trim();
-    if (!pan) {
-      alert('Please enter the PAN number');
-      return;
-    }
-
-    this.searching = true;
-    this.landingService.getEmployeeByPan(pan).subscribe({
+    this.landingService.getEmployeeByPan(value).subscribe({
       next: (emp: any) => {
-        this.searching = false;
         if (!emp || !emp.id) {
           alert('PAN is incorrect or not registered');
           return;
@@ -168,17 +162,26 @@ export class LandingPageComponent {
           basicPay: emp.basicPay ?? 0,
           da: emp.da ?? 0,
           ta: emp.ta ?? 0,
+          daOnTransportAllowance: emp.daOnTransportAllowance ?? 0,
           hra: emp.hra ?? 0,
           medicalAllowances: emp.medicalAllowances ?? 0,
+          specialPay: emp.specialPay ?? 0,
+          arrearDearnessAllowance: emp.arrearDearnessAllowance ?? 0,
+          arrearPayAndAllowances: emp.arrearPayAndAllowances ?? 0,
+
+          incomeFromHouseRent: emp.incomeFromHouseRent ?? 0,
+          interestOnHousingLoan: emp.interestOnHousingLoan ?? 0,
+
+          interestOnSaving: emp.interestOnSaving ?? 0,
+          interestOnFixedDeposit: emp.interestOnFixedDeposit ?? 0,
+          anyOtherIncome: emp.anyOtherIncome ?? 0,
           financialYear: emp.financialYear ?? ''
         });
 
-        // Require captcha again for updates too.
         this.captchaVerified = false;
         this.captchaComp?.generate();
       },
       error: (err) => {
-        this.searching = false;
         console.error('Search by PAN failed', err);
         const msg = err?.error?.message || 'PAN is incorrect or not registered';
         alert(msg);
@@ -204,8 +207,19 @@ export class LandingPageComponent {
       basicPay: 'Basic Pay',
       da: 'DA',
       ta: 'TA',
+      daOnTransportAllowance: 'DA on Transport Allowance',
       hra: 'HRA',
       medicalAllowances: 'Medical Allowances',
+      specialPay: 'Special Pay / Bonus / Other Allowances',
+      arrearDearnessAllowance: 'Arrear of Dearness Allowance',
+      arrearPayAndAllowances: 'Arrear of Pay and Allowances',
+
+      incomeFromHouseRent: 'Income from House Rent',
+      interestOnHousingLoan: 'Interest on Housing Loan',
+
+      interestOnSaving: 'Interest on Saving A/c',
+      interestOnFixedDeposit: 'Interest on Fixed Deposit / Recurring Deposit',
+      anyOtherIncome: 'Any other Income',
       financialYear: 'Financial Year'
     };
 

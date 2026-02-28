@@ -1,38 +1,10 @@
 <div class="page-wrap">
   <div class="title-center">
-    <h1 class="main-title">Income Tax Report Generator</h1>
-    <h2 class="sub-title">Income Tax — Employee Details</h2>
+    <h1 class="main-title">Income Tax Report</h1>
+    <h6 class="sub-title">Income Tax Schedule for Salaried Employee</h6>
   </div>
 
   <div class="it-card">
-    <div class="mode-actions">
-      <button
-        type="button"
-        class="mode-btn"
-        [class.active]="mode === 'new'"
-        (click)="selectNewMode()">
-        Fill New Form
-      </button>
-      <button
-        type="button"
-        class="mode-btn"
-        [class.active]="mode === 'edit'"
-        (click)="selectEditMode()">
-        Edit Form
-      </button>
-    </div>
-
-    <div class="search-row" *ngIf="mode === 'edit'">
-      <input
-        class="search-input"
-        [(ngModel)]="searchPan"
-        name="searchPan"
-        placeholder="Please enter the PAN number" />
-      <button type="button" class="search-btn" (click)="onSearchByPan()" [disabled]="searching">
-        {{ searching ? 'Searching...' : 'Search' }}
-      </button>
-    </div>
-
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <section class="section">
       <fieldset class="group">
@@ -81,6 +53,9 @@
             <input type="number" formControlName="ta" placeholder="Enter TA" />
             <span class="error" *ngIf="f.ta?.invalid && f.ta?.touched">TA is required</span>
           </label>
+          <label>DA on Transport Allowance
+            <input type="number" formControlName="daOnTransportAllowance" placeholder="Enter DA on transport allowance" />
+          </label>
           <label>HRA
             <input type="number" formControlName="hra" placeholder="Enter HRA" />
             <span class="error" *ngIf="f.hra?.invalid && f.hra?.touched">HRA is required</span>
@@ -89,12 +64,54 @@
             <input type="number" formControlName="medicalAllowances" placeholder="Enter medical allowances" />
             <span class="error" *ngIf="f.medicalAllowances?.invalid && f.medicalAllowances?.touched">Medical Allowances is required (0 allowed)</span>
           </label>
+
+          <label>Special Pay / Bonus / Other Allowances
+            <input type="number" formControlName="specialPay" placeholder="Enter special pay" />
+          </label>
+          <label>Arrear of Dearness Allowance
+            <input type="number" formControlName="arrearDearnessAllowance" placeholder="Enter arrear of DA" />
+          </label>
+          <label>Arrear of Pay and Allowances
+            <input type="number" formControlName="arrearPayAndAllowances" placeholder="Enter arrear of pay and allowances" />
+          </label>
+
           <label>Financial Year
             <select formControlName="financialYear">
               <option value="" disabled selected>Please select financial year</option>
               <option *ngFor="let fy of financialYears" [value]="fy">{{ fy }}</option>
             </select>
             <span class="error" *ngIf="f.financialYear?.invalid && f.financialYear?.touched">Please select financial year</span>
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="section">
+      <fieldset class="group">
+        <legend>Income from House Property</legend>
+        <div class="grid">
+          <label>Income from House Rent
+            <input type="number" formControlName="incomeFromHouseRent" placeholder="Enter income from house rent" />
+          </label>
+          <label>Interest on Housing Loan
+            <input type="number" formControlName="interestOnHousingLoan" placeholder="Enter interest on housing loan" />
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="section">
+      <fieldset class="group">
+        <legend>Income from Other Sources</legend>
+        <div class="grid">
+          <label>Interest on Saving A/c
+            <input type="number" formControlName="interestOnSaving" placeholder="Enter interest on saving A/c" />
+          </label>
+          <label>Interest on Fixed Deposit / Recurring Deposit
+            <input type="number" formControlName="interestOnFixedDeposit" placeholder="Enter interest on FD/RD" />
+          </label>
+          <label>Any other Income
+            <input type="number" formControlName="anyOtherIncome" placeholder="Enter any other income" />
           </label>
         </div>
       </fieldset>

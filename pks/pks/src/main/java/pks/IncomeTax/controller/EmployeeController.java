@@ -72,8 +72,20 @@ public class EmployeeController {
             existing.setBasicPay(incoming.getBasicPay());
             existing.setDa(incoming.getDa());
             existing.setTa(incoming.getTa());
+            existing.setDaOnTransportAllowance(incoming.getDaOnTransportAllowance());
             existing.setHra(incoming.getHra());
             existing.setMedicalAllowances(incoming.getMedicalAllowances());
+
+            existing.setSpecialPay(incoming.getSpecialPay());
+            existing.setArrearDearnessAllowance(incoming.getArrearDearnessAllowance());
+            existing.setArrearPayAndAllowances(incoming.getArrearPayAndAllowances());
+
+            existing.setIncomeFromHouseRent(incoming.getIncomeFromHouseRent());
+            existing.setInterestOnHousingLoan(incoming.getInterestOnHousingLoan());
+
+            existing.setInterestOnSaving(incoming.getInterestOnSaving());
+            existing.setInterestOnFixedDeposit(incoming.getInterestOnFixedDeposit());
+            existing.setAnyOtherIncome(incoming.getAnyOtherIncome());
             existing.setFinancialYear(incoming.getFinancialYear());
 
             Employee saved = repo.save(existing);

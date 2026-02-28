@@ -5,9 +5,11 @@ body{
 	font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 	background-color: var(--bg-dark);
 	background-image:
-		radial-gradient(circle at 10% 10%, rgba(108,99,255,0.08), transparent 8%),
-		radial-gradient(circle at 90% 80%, rgba(120,60,200,0.06), transparent 18%),
-		linear-gradient(180deg, rgba(10,16,40,0.85), rgba(2,6,20,0.95));
+		radial-gradient(circle at 10% 10%, rgba(108,99,255,0.08), transparent 14%),
+		radial-gradient(circle at 90% 80%, rgba(244, 8, 8, 0.06), transparent 22%);
+	background-attachment: fixed;
+	background-repeat: no-repeat;
+	background-size: cover;
 	color:#e9eef8;
 	-webkit-font-smoothing:antialiased;
 	-moz-osx-font-smoothing:grayscale;
@@ -23,6 +25,16 @@ body::before{
 
 /* helper for center layout */
 .page-wrap{max-width:1100px;margin:28px auto;padding:18px}
+
+/* app shell so footer stays at bottom */
+.app-shell{min-height:100vh;display:flex;flex-direction:column}
+.app-main{flex:1}
+.app-footer{
+	padding:16px 18px;
+	text-align:center;
+	color: rgba(234,240,255,0.60);
+	border-top: 1px solid rgba(255,255,255,0.06);
+}
 
 /* Card styles used by landing page */
 .it-card{background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
