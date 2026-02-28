@@ -215,7 +215,7 @@ public class IncomeTaxReportService {
                 /* ---------- FOOTER ---------- */
                 // Place: use department if available
                 String place = e.getDepartment() != null ? e.getDepartment() : "";
-                text(cs, fonts.normal(), 9, lx, 70, "Place: " + place);
+                text(cs, fonts.normal(), 9, lx, 70, "Place: " + "Bettiah");
                 text(cs, fonts.normal(), 9, lx, 55, "Date : " + LocalDate.now());
 
                 text(cs, fonts.normal(), 9, pw - 240, 70, "Signature and Seal");
