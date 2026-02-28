@@ -26,9 +26,13 @@
             <input formControlName="pan" placeholder="PAN number" />
             <span class="error" *ngIf="f.pan?.invalid && f.pan?.touched">PAN is required</span>
           </label>
-          <label>Employee ID
-            <input formControlName="employeeId" placeholder="Employee ID" />
-            <span class="error" *ngIf="f.employeeId?.invalid && f.employeeId?.touched">Employee ID is required</span>
+          <label>Employer TAN
+            <input formControlName="employerTan" placeholder="Employer TAN" />
+            <span class="error" *ngIf="f.employerTan?.invalid && f.employerTan?.touched">Employer TAN is required</span>
+          </label>
+          <label>Treasury Name
+            <input formControlName="treasuryName" placeholder="Treasury Name" />
+            <span class="error" *ngIf="f.treasuryName?.invalid && f.treasuryName?.touched">Treasury Name is required</span>
           </label>
         </div>
       </fieldset>

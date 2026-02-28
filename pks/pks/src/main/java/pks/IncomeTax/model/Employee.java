@@ -16,7 +16,8 @@ public class Employee {
     private String post;
     private String department;
     private String pan;
-    private String employeeId;
+    private String employerTan;
+    private String treasuryName;
 
     private BigDecimal basicPay;
     private BigDecimal da;
@@ -44,8 +45,11 @@ public class Employee {
     public String getPan() { return pan; }
     public void setPan(String pan) { this.pan = pan; }
 
-    public String getEmployeeId() { return employeeId; }
-    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+    public String getEmployerTan() { return employerTan; }
+    public void setEmployerTan(String employerTan) { this.employerTan = employerTan; }
+
+    public String getTreasuryName() { return treasuryName; }
+    public void setTreasuryName(String treasuryName) { this.treasuryName = treasuryName; }
 
     public BigDecimal getBasicPay() { return basicPay; }
     public void setBasicPay(BigDecimal basicPay) { this.basicPay = basicPay; }

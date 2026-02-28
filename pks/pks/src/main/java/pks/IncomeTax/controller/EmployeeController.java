@@ -34,9 +34,9 @@ public class EmployeeController {
     @PostMapping
     public ResponseEntity<Employee> create(@RequestBody Employee employee) {
         // Log incoming request to help diagnose duplicate submissions or payload issues
-        logger.info("[{}] POST /api/employee received at {} on thread {}: name='{}', employeeId='{}', financialYear='{}', basicPay='{}'",
-            Instant.now(), Instant.now().toString(), Thread.currentThread().threadId(),
-                employee.getName(), employee.getEmployeeId(), employee.getFinancialYear(), employee.getBasicPay());
+        logger.info("[{}] POST /api/employee received at {} on thread {}: name='{}', employerTan='{}', treasury='{}', financialYear='{}', basicPay='{}',",
+            Instant.now(), Instant.now().toString(), Thread.currentThread().getId(),
+            employee.getName(), employee.getEmployerTan(), employee.getTreasuryName(), employee.getFinancialYear(), employee.getBasicPay());
 
         Employee saved = repo.save(employee);
         logger.info("[{}] Employee persisted with id={}", Instant.now(), saved.getId());
