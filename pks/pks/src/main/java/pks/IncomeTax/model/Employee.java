@@ -1,7 +1,7 @@
 package pks.IncomeTax.model;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
+
 import java.time.Instant;
 
 @Entity
@@ -19,11 +19,11 @@ public class Employee {
     private String employerTan;
     private String treasuryName;
 
-    private BigDecimal basicPay;
-    private BigDecimal da;
-    private BigDecimal ta;
-    private BigDecimal hra;
-    private BigDecimal medicalAllowances;
+    private Long basicPay;
+    private Long da;
+    private Long ta;
+    private Long hra;
+    private Long medicalAllowances;
 
     private String financialYear;
 
@@ -51,20 +51,24 @@ public class Employee {
     public String getTreasuryName() { return treasuryName; }
     public void setTreasuryName(String treasuryName) { this.treasuryName = treasuryName; }
 
-    public BigDecimal getBasicPay() { return basicPay; }
-    public void setBasicPay(BigDecimal basicPay) { this.basicPay = basicPay; }
+    // Compatibility: some clients may send/expect the misspelling "tragary".
+    public String getTragary() { return treasuryName; }
+    public void setTragary(String tragary) { this.treasuryName = tragary; }
 
-    public BigDecimal getDa() { return da; }
-    public void setDa(BigDecimal da) { this.da = da; }
+    public Long getBasicPay() { return basicPay; }
+    public void setBasicPay(Long basicPay) { this.basicPay = basicPay; }
 
-    public BigDecimal getTa() { return ta; }
-    public void setTa(BigDecimal ta) { this.ta = ta; }
+    public Long getDa() { return da; }
+    public void setDa(Long da) { this.da = da; }
 
-    public BigDecimal getHra() { return hra; }
-    public void setHra(BigDecimal hra) { this.hra = hra; }
+    public Long getTa() { return ta; }
+    public void setTa(Long ta) { this.ta = ta; }
 
-    public BigDecimal getMedicalAllowances() { return medicalAllowances; }
-    public void setMedicalAllowances(BigDecimal medicalAllowances) { this.medicalAllowances = medicalAllowances; }
+    public Long getHra() { return hra; }
+    public void setHra(Long hra) { this.hra = hra; }
+
+    public Long getMedicalAllowances() { return medicalAllowances; }
+    public void setMedicalAllowances(Long medicalAllowances) { this.medicalAllowances = medicalAllowances; }
 
     public String getFinancialYear() { return financialYear; }
     public void setFinancialYear(String financialYear) { this.financialYear = financialYear; }

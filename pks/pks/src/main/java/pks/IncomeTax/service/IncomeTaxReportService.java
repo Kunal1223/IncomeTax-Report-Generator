@@ -21,6 +21,10 @@ public class IncomeTaxReportService {
     private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
     }
 
+    private long safe(Long v) {
+        return v == null ? 0L : v.longValue();
+    }
+
     public String generate(Employee e) throws Exception {
 
         Path dir = Path.of("reports");
@@ -58,55 +62,74 @@ public class IncomeTaxReportService {
                 float rx = 430;
 
                 /* ---------- BASIC DETAILS ---------- */
-                y = labelValue(cs, fonts, y, lx, 260, "Name of the Employee:", e.getName());
-                y = labelValue(cs, fonts, y, lx, 260, "Designation:", "Software Engineer");
-                y = labelValue(cs, fonts, y, lx, 260, "Permanent Account Number (PAN):", e.getPan());
-                y = labelValue(cs, fonts, y, lx, 260, "Office Name:", "Income Tax Department");
-                y = labelValue(cs, fonts, y, lx, 260, "Office TAN:", "ABCDE1234F");
-                y = labelValue(cs, fonts, y, lx, 260, "Treasury Name:", "Central Treasury");
+                y = labelValue(cs, fonts, y, lx, 260, "Name of the Employee:", e.getName() != null ? e.getName() : "");
+                y = labelValue(cs, fonts, y, lx, 260, "Designation:", e.getPost() != null ? e.getPost() : "");
+                y = labelValue(cs, fonts, y, lx, 260, "Permanent Account Number (PAN):", e.getPan() != null ? e.getPan() : "");
+                // As per UI mapping: Office Name = department, Office TAN = employerTan, Treasury Name = treasuryName
+                y = labelValue(cs, fonts, y, lx, 260, "Office Name:", e.getDepartment() != null ? e.getDepartment() : "");
+                y = labelValue(cs, fonts, y, lx, 260, "Office TAN:", e.getEmployerTan() != null ? e.getEmployerTan() : "");
+                y = labelValue(cs, fonts, y, lx, 260, "Treasury Name:", e.getTreasuryName() != null ? e.getTreasuryName() : "");
 
                 /* ---------- SECTION A ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "(A) Income from Salary :");
                 y -= (14 + AFTER_HEADER_GAP); // 14 = header height
 
-                y = money(cs, fonts, y, "(1) Basic Salary (01-03-2025 to 28-02-2026):", 3423423, false);
-                y = money(cs, fonts, y, "(2) Dearness Allowance:", 123456, false);
-                y = money(cs, fonts, y, "(3) House Rent Allowance:", 234567, false);
-                y = money(cs, fonts, y, "(4) Medical Allowance:", 12345, false);
-                y = money(cs, fonts, y, "(5) Transport Allowance:", 123456, false);
-                y = money(cs, fonts, y, "(6) DA on Transport Allowance:", 12345, false);
-                y = money(cs, fonts, y, "(7) Special Pay/Bonus/Honorarium/Nursing Allowance/Other Allowances:", 123456, false);
-                y = money(cs, fonts, y, "(8) Arrear of Dearness Allowance:", 1234567, false);
-                y = money(cs, fonts, y, "(9) Arrear of Pay and Allowances:", 1234567890L, false);
-                y = money(cs, fonts, y, "(10) Total Income from Salary:", 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L, true);
-                y = money(cs, fonts, y, "(-) Less : Standard deduction u/s 16(1)", 123456789L, false);
-                y = money(cs, fonts, y, "Total Income from Salary", 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L - 123456789L, true);
+                // Use employee-provided values (fallback to 0)
+                long basic = safe(e.getBasicPay());
+                long daVal = safe(e.getDa());
+                long hraVal = safe(e.getHra());
+                long med = safe(e.getMedicalAllowances());
+                long taVal = safe(e.getTa());
+                long daOnTransport = 0L;
+                long specialPay = 0L;
+                long arrearDA = 0L;
+                long arrearPay = 0L;
+
+                y = money(cs, fonts, y, "(1) Basic Salary (01-03-2025 to 28-02-2026):", basic, false);
+                y = money(cs, fonts, y, "(2) Dearness Allowance:", daVal, false);
+                y = money(cs, fonts, y, "(3) House Rent Allowance:", hraVal, false);
+                y = money(cs, fonts, y, "(4) Medical Allowance:", med, false);
+                y = money(cs, fonts, y, "(5) Transport Allowance:", taVal, false);
+                y = money(cs, fonts, y, "(6) DA on Transport Allowance:", daOnTransport, false);
+                y = money(cs, fonts, y, "(7) Special Pay/Bonus/Honorarium/Nursing Allowance/Other Allowances:", specialPay, false);
+                y = money(cs, fonts, y, "(8) Arrear of Dearness Allowance:", arrearDA, false);
+                y = money(cs, fonts, y, "(9) Arrear of Pay and Allowances:", arrearPay, false);
+
+                long totalIncomeFromSalary = basic + daVal + hraVal + med + taVal + daOnTransport + specialPay + arrearDA + arrearPay;
+                y = money(cs, fonts, y, "(10) Total Income from Salary:", totalIncomeFromSalary, true);
+
+                long standardDeduction = 0L;
+                y = money(cs, fonts, y, "(-) Less : Standard deduction u/s 16(1)", standardDeduction, false);
+                y = money(cs, fonts, y, "Total Income from Salary", totalIncomeFromSalary - standardDeduction, true);
 
                 /* ---------- SECTION B ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "(B) Income from House Property :");
                 y -= (14 + AFTER_HEADER_GAP);
 
-                y = money(cs, fonts, y, "(i) Income from House Rent", 123456789L, false);
-                y = money(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", 12345678L, false);
-                y = money(cs, fonts, y, "Total Income from House Property", 123456789L + 12345678L, true);
+                // No user inputs for house property in model — default to 0
+                y = money(cs, fonts, y, "(i) Income from House Rent", 0L, false);
+                y = money(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", 0L, false);
+                y = money(cs, fonts, y, "Total Income from House Property", 0L + 0L, true);
 
                 /* ---------- SECTION C ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "(C) Income from Other Sources :");
                 y -= (14 + AFTER_HEADER_GAP);
 
-                y = money(cs, fonts, y, "(i) Interest on Saving A/c of Bank/Post Office", 12345678L, false);
-                y = money(cs, fonts, y, "(ii) Interest on Fixed Deposit / Recurring Deposit / KVP etc.", 123456789L, false);
-                y = money(cs, fonts, y, "(iii) Any other Income / Commission / etc.", 1234567890L, false);
-                y = money(cs, fonts, y, "Total Income from Other Sources", 12345678L + 123456789L + 1234567890L, true);
+                // No user inputs for other sources — default to 0
+                y = money(cs, fonts, y, "(i) Interest on Saving A/c of Bank/Post Office", 0L, false);
+                y = money(cs, fonts, y, "(ii) Interest on Fixed Deposit / Recurring Deposit / KVP etc.", 0L, false);
+                y = money(cs, fonts, y, "(iii) Any other Income / Commission / etc.", 0L, false);
+                y = money(cs, fonts, y, "Total Income from Other Sources", 0L + 0L + 0L, true);
 
                 /* ---------- GROSS TOTAL ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, 520, "GROSS TOTAL INCOME");
                 y -= (14 + AFTER_HEADER_GAP);
-                y = money(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO Rs. 10/-)", 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L + 1234567890L - 123456789L + 123456789L + 12345678L + 12345678L + 123456789L + 1234567890L, true);
+                long grossTotalIncome = totalIncomeFromSalary + 0L + 0L; // salary + house + other
+                y = money(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO Rs. 10/-)", grossTotalIncome, true);
 
                 /* ---------- TAX TABLE ---------- */
                 y -= 10;
@@ -127,19 +150,22 @@ public class IncomeTaxReportService {
 
                 /* ---------- FINAL TOTALS ---------- */
                 y -= 18;
-                y = money(cs, fonts, y, "Net Income Tax Payable", 123456789L, true);
-                y = money(cs, fonts, y, "Add : 4% Health and Education Cess on Rs.", 12345678L, false);
-                y = money(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", 123456789L + 12345678L, true);
-                y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", 123456789L, false);
+                // Tax calculations are not part of user input mapping — default placeholders (0)
+                y = money(cs, fonts, y, "Net Income Tax Payable", 0L, true);
+                y = money(cs, fonts, y, "Add : 4% Health and Education Cess on Rs.", 0L, false);
+                y = money(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", 0L + 0L, true);
+                y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", 0L, false);
                 y = money(cs, fonts, y,
-                        "Balance: Income Tax deposited / deducted through Salary for the month of February",
-                        123456789L, false);
+                    "Balance: Income Tax deposited / deducted through Salary for the month of February",
+                    0L, false);
                 y = money(cs, fonts, y,
-                        "Payable Income Tax and Health & Education Cess for Financial Year 2025-26",
-                        123456789L, true);
+                    "Payable Income Tax and Health & Education Cess for Financial Year 2025-26",
+                    0L, true);
 
                 /* ---------- FOOTER ---------- */
-                text(cs, fonts.normal(), 9, lx, 70, "Place: " + 534534534);
+                // Place: use department if available
+                String place = e.getDepartment() != null ? e.getDepartment() : "";
+                text(cs, fonts.normal(), 9, lx, 70, "Place: " + place);
                 text(cs, fonts.normal(), 9, lx, 55, "Date : " + LocalDate.now());
 
                 text(cs, fonts.normal(), 9, pw - 240, 70, "Signature and Seal");

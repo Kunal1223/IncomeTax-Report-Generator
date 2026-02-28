@@ -15,6 +15,7 @@ import pks.IncomeTax.service.IncomeTaxReportService;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.Map;
 
 @RestController
@@ -34,9 +35,9 @@ public class EmployeeController {
     @PostMapping
     public ResponseEntity<Employee> create(@RequestBody Employee employee) {
         // Log incoming request to help diagnose duplicate submissions or payload issues
-        logger.info("[{}] POST /api/employee received at {} on thread {}: name='{}', employerTan='{}', treasury='{}', financialYear='{}', basicPay='{}',",
-            Instant.now(), Instant.now().toString(), Thread.currentThread().getId(),
-            employee.getName(), employee.getEmployerTan(), employee.getTreasuryName(), employee.getFinancialYear(), employee.getBasicPay());
+        logger.info("[{}] POST /api/employee received at {} on thread {}: name='{}', employerTan='{}', financialYear='{}', basicPay='{}'",
+            Instant.now(), Instant.now().toString(), Thread.currentThread().threadId(),
+                employee.getName(), employee.getEmployerTan(), employee.getFinancialYear(), employee.getBasicPay());
 
         Employee saved = repo.save(employee);
         logger.info("[{}] Employee persisted with id={}", Instant.now(), saved.getId());
@@ -46,6 +47,38 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public ResponseEntity<Employee> get(@PathVariable Long id) {
         return repo.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/by-pan")
+    public ResponseEntity<?> getByPan(@RequestParam String pan) {
+        if (pan == null || pan.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "PAN is required"));
+        }
+        Optional<Employee> employee = repo.findByPan(pan.trim());
+        return employee.<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("message", "PAN is incorrect or not registered")));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Employee incoming) {
+        return repo.findById(id).<ResponseEntity<?>>map(existing -> {
+            existing.setName(incoming.getName());
+            existing.setPost(incoming.getPost());
+            existing.setDepartment(incoming.getDepartment());
+            existing.setPan(incoming.getPan());
+            existing.setEmployerTan(incoming.getEmployerTan());
+            existing.setTreasuryName(incoming.getTreasuryName());
+
+            existing.setBasicPay(incoming.getBasicPay());
+            existing.setDa(incoming.getDa());
+            existing.setTa(incoming.getTa());
+            existing.setHra(incoming.getHra());
+            existing.setMedicalAllowances(incoming.getMedicalAllowances());
+            existing.setFinancialYear(incoming.getFinancialYear());
+
+            Employee saved = repo.save(existing);
+            return ResponseEntity.ok(saved);
+        }).orElseGet(() -> ResponseEntity.status(404).body(Map.of("message", "Employee not found")));
     }
 
     @PostMapping("/{id}/report")

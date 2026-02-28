@@ -17,12 +17,16 @@ export class LandingPageComponent {
   form: any;
   financialYears: string[] = [];
   saving = false;
+  searching = false;
+  mode: 'new' | 'edit' = 'new';
+  searchPan = '';
   @ViewChild(CaptchaComponent) captchaComp?: CaptchaComponent;
 
   constructor(private fb: FormBuilder, private landingService: LandingService) {
     this.financialYears = this.getFinancialYears(3);
 
     this.form = this.fb.group({
+      id: [null],
       name: ['', Validators.required],
       post: ['', Validators.required],
       department: ['', Validators.required],
@@ -69,7 +73,11 @@ export class LandingPageComponent {
 
     if (this.form.valid) {
       this.saving = true;
-      this.landingService.saveEmployee(this.form.value).subscribe({
+      const payload = this.form.value;
+      const hasId = !!payload?.id;
+      const req$ = hasId ? this.landingService.updateEmployee(payload.id, payload) : this.landingService.saveEmployee(payload);
+
+      req$.subscribe({
         next: (res) => {
           this.saving = false;
           console.log('Landing form submitted', this.form.value, res);
@@ -96,10 +104,12 @@ export class LandingPageComponent {
               }
             });
           }
-          // Reset form and captcha for a fresh entry
-          this.form.reset();
-          this.captchaVerified = false;
-          this.captchaComp?.generate();
+          // Reset only for "new" mode; for edit mode keep the loaded data.
+          if (this.mode === 'new') {
+            this.form.reset();
+            this.captchaVerified = false;
+            this.captchaComp?.generate();
+          }
         },
         error: (err) => {
           this.saving = false;
@@ -114,6 +124,66 @@ export class LandingPageComponent {
       const msg = empty.length ? 'Please fill: ' + empty.join(', ') : 'Please complete the form.';
       alert(msg);
     }
+  }
+
+  selectNewMode() {
+    this.mode = 'new';
+    this.searchPan = '';
+    this.form.reset();
+    this.captchaVerified = false;
+    this.captchaComp?.generate();
+    alert('Please fill the form');
+  }
+
+  selectEditMode() {
+    this.mode = 'edit';
+    this.searchPan = '';
+    // Keep current form values until a search loads an employee.
+  }
+
+  onSearchByPan() {
+    const pan = (this.searchPan || '').trim();
+    if (!pan) {
+      alert('Please enter the PAN number');
+      return;
+    }
+
+    this.searching = true;
+    this.landingService.getEmployeeByPan(pan).subscribe({
+      next: (emp: any) => {
+        this.searching = false;
+        if (!emp || !emp.id) {
+          alert('PAN is incorrect or not registered');
+          return;
+        }
+
+        this.form.patchValue({
+          id: emp.id ?? null,
+          name: emp.name ?? '',
+          post: emp.post ?? '',
+          department: emp.department ?? '',
+          pan: emp.pan ?? '',
+          employerTan: emp.employerTan ?? '',
+          treasuryName: emp.treasuryName ?? emp.tragary ?? '',
+          basicPay: emp.basicPay ?? 0,
+          da: emp.da ?? 0,
+          ta: emp.ta ?? 0,
+          hra: emp.hra ?? 0,
+          medicalAllowances: emp.medicalAllowances ?? 0,
+          financialYear: emp.financialYear ?? ''
+        });
+
+        // Require captcha again for updates too.
+        this.captchaVerified = false;
+        this.captchaComp?.generate();
+      },
+      error: (err) => {
+        this.searching = false;
+        console.error('Search by PAN failed', err);
+        const msg = err?.error?.message || 'PAN is incorrect or not registered';
+        alert(msg);
+      }
+    });
   }
 
   onCaptchaVerified(v: boolean) {

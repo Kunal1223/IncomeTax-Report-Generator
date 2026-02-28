@@ -5,6 +5,34 @@
   </div>
 
   <div class="it-card">
+    <div class="mode-actions">
+      <button
+        type="button"
+        class="mode-btn"
+        [class.active]="mode === 'new'"
+        (click)="selectNewMode()">
+        Fill New Form
+      </button>
+      <button
+        type="button"
+        class="mode-btn"
+        [class.active]="mode === 'edit'"
+        (click)="selectEditMode()">
+        Edit Form
+      </button>
+    </div>
+
+    <div class="search-row" *ngIf="mode === 'edit'">
+      <input
+        class="search-input"
+        [(ngModel)]="searchPan"
+        name="searchPan"
+        placeholder="Please enter the PAN number" />
+      <button type="button" class="search-btn" (click)="onSearchByPan()" [disabled]="searching">
+        {{ searching ? 'Searching...' : 'Search' }}
+      </button>
+    </div>
+
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <section class="section">
       <fieldset class="group">
