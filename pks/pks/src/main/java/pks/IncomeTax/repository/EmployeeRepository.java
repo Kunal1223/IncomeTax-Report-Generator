@@ -9,4 +9,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
 	Optional<Employee> findByPan(String pan);
 
+	Optional<Employee> findByPanIgnoreCase(String pan);
+
+	boolean existsByPanIgnoreCase(String pan);
+
 }

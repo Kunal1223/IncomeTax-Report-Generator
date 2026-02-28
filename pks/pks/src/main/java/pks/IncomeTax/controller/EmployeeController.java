@@ -33,7 +33,15 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public ResponseEntity<Employee> create(@RequestBody Employee employee) {
+    public ResponseEntity<?> create(@RequestBody Employee employee) {
+        String pan = employee.getPan() != null ? employee.getPan().trim() : "";
+        if (pan.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "PAN is required"));
+        }
+        if (repo.existsByPanIgnoreCase(pan)) {
+            return ResponseEntity.status(409).body(Map.of("message", "Hey, this PAN number is already existing in our database. Please use Edit/Update to modify it."));
+        }
+
         // Log incoming request to help diagnose duplicate submissions or payload issues
         logger.info("[{}] POST /api/employee received at {} on thread {}: name='{}', employerTan='{}', financialYear='{}', basicPay='{}'",
             Instant.now(), Instant.now().toString(), Thread.currentThread().threadId(),
@@ -54,7 +62,7 @@ public class EmployeeController {
         if (pan == null || pan.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "PAN is required"));
         }
-        Optional<Employee> employee = repo.findByPan(pan.trim());
+        Optional<Employee> employee = repo.findByPanIgnoreCase(pan.trim());
         return employee.<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(404).body(Map.of("message", "PAN is incorrect or not registered")));
     }
@@ -62,6 +70,15 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Employee incoming) {
         return repo.findById(id).<ResponseEntity<?>>map(existing -> {
+            String incomingPan = incoming.getPan() != null ? incoming.getPan().trim() : "";
+            if (incomingPan.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "PAN is required"));
+            }
+            Optional<Employee> panOwner = repo.findByPanIgnoreCase(incomingPan);
+            if (panOwner.isPresent() && !panOwner.get().getId().equals(existing.getId())) {
+                return ResponseEntity.status(409).body(Map.of("message", "PAN already exists"));
+            }
+
             existing.setName(incoming.getName());
             existing.setPost(incoming.getPost());
             existing.setDepartment(incoming.getDepartment());

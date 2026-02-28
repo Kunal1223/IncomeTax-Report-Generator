@@ -4,6 +4,8 @@ import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angu
 import { CaptchaComponent } from '../captcha/captcha.component';
 import { LandingService } from '../services/landing.service';
 import { ActivatedRoute } from '@angular/router';
+import { EMPTY, throwError } from 'rxjs';
+import { catchError, finalize, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'landing-page',
@@ -92,46 +94,73 @@ export class LandingPageComponent {
 
     if (this.form.valid) {
       this.saving = true;
-      const payload = this.form.value;
-      const hasId = !!payload?.id;
-      const req$ = hasId ? this.landingService.updateEmployee(payload.id, payload) : this.landingService.saveEmployee(payload);
 
-      req$.subscribe({
-        next: (res) => {
-          this.saving = false;
-          console.log('Landing form submitted', this.form.value, res);
-          alert('Details saved successfully.');
-          // Trigger report generation and download
-          const id = res && res.id ? res.id : null;
-          if (id) {
-            this.landingService.generateReport(id).subscribe({
-              next: (r: any) => {
-                const downloadUrl = r && r.downloadUrl ? r.downloadUrl : null;
-                if (downloadUrl) {
-                  const full = this.landingService.serverRoot() + downloadUrl;
-                  const a = document.createElement('a');
-                  a.href = full;
-                  a.target = '_blank';
-                  a.rel = 'noopener';
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                }
-              },
-              error: (err2) => {
-                console.error('Report generation failed', err2);
+      const payload = { ...this.form.value };
+      payload.pan = (payload?.pan || '').trim().toUpperCase();
+      const hasId = !!payload?.id;
+
+      const req$ = hasId
+        ? this.landingService.updateEmployee(payload.id, payload)
+        : this.landingService.getEmployeeByPan(payload.pan).pipe(
+            // If PAN exists, block save for New Form.
+            switchMap((emp: any) => {
+              if (emp && emp.id) {
+                alert('Hey, this PAN number is already existing in our database. Please use Edit/Update to modify it.');
+                return EMPTY;
               }
-            });
-          }
+              return this.landingService.saveEmployee(payload);
+            }),
+            // If PAN not found (404), allow create; otherwise surface error.
+            catchError((err: any) => {
+              if (err?.status === 404) {
+                return this.landingService.saveEmployee(payload);
+              }
+              return throwError(() => err);
+            })
+          );
+
+      req$
+        .pipe(
+          finalize(() => {
+            this.saving = false;
+          })
+        )
+        .subscribe({
+          next: (res) => {
+            if (!res) return; // e.g. EMPTY when duplicate PAN in New Form
+
+            console.log('Landing form submitted', this.form.value, res);
+            alert('Details saved successfully.');
+            // Trigger report generation and download
+            const id = res && res.id ? res.id : null;
+            if (id) {
+              this.landingService.generateReport(id).subscribe({
+                next: (r: any) => {
+                  const downloadUrl = r && r.downloadUrl ? r.downloadUrl : null;
+                  if (downloadUrl) {
+                    const full = this.landingService.serverRoot() + downloadUrl;
+                    const a = document.createElement('a');
+                    a.href = full;
+                    a.target = '_blank';
+                    a.rel = 'noopener';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                  }
+                },
+                error: (err2) => {
+                  console.error('Report generation failed', err2);
+                }
+              });
+            }
             // Keep the form filled after save/update.
-        },
-        error: (err) => {
-          this.saving = false;
-          console.error('Save failed', err);
-          const msg = err?.error?.message || err?.message || 'Failed to save the details.';
-          alert('Failed to save the details: ' + msg);
-        }
-      });
+          },
+          error: (err) => {
+            console.error('Save failed', err);
+            const msg = err?.error?.message || err?.message || 'Failed to save the details.';
+            alert(msg);
+          }
+        });
     } else {
       this.form.markAllAsTouched();
       const empty = this.getEmptyFields();
