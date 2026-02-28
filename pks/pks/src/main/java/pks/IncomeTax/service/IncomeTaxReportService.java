@@ -18,6 +18,21 @@ public class IncomeTaxReportService {
     private static final float EXTRA_PAGE_HEIGHT = 180f;
     private static final float AFTER_HEADER_GAP = 10f;
 
+    private static final float PAGE_WIDTH_REDUCTION = 25f;
+
+    private static final float CONTENT_X = 40f;
+    private static final float CONTENT_W = 510f;
+    private static final float RIGHT_PADDING = 6f;
+    private static final float AMOUNT_RIGHT_X = CONTENT_X + CONTENT_W - RIGHT_PADDING;
+
+    // Currency layout: keep ₹ in a fixed vertical column, and the number right-aligned.
+    private static final float AMOUNT_NUMBER_COL_W = 70f;
+    private static final float RUPEE_GAP = 4f;
+    private static final float AMOUNT_RUPEE_X = AMOUNT_RIGHT_X - AMOUNT_NUMBER_COL_W - RUPEE_GAP;
+
+    private static final float TAX_TABLE_NUMBER_COL_W = 70f;
+    private static final float BLACK_HEADER_WIDTH_FACTOR = 0.60f;
+
     private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
     }
 
@@ -78,7 +93,7 @@ public class IncomeTaxReportService {
         try (PDDocument doc = new PDDocument()) {
             Fonts fonts = loadFonts(doc);
             PDRectangle pageSize = new PDRectangle(
-                    PDRectangle.A4.getWidth(),
+                    PDRectangle.A4.getWidth() - PAGE_WIDTH_REDUCTION,
                     PDRectangle.A4.getHeight() + EXTRA_PAGE_HEIGHT
             );
             PDPage page = new PDPage(pageSize);
@@ -115,7 +130,7 @@ public class IncomeTaxReportService {
 
                 /* ---------- SECTION A ---------- */
                 y -= 6;
-                blackHeader(cs, fonts, lx, y, 520, "(A) Income from Salary :");
+                blackHeader(cs, fonts, lx, y, CONTENT_W, "(A) Income from Salary :");
                 y -= (14 + AFTER_HEADER_GAP); // 14 = header height
 
                 // Use employee-provided values (fallback to 0)
@@ -149,7 +164,7 @@ public class IncomeTaxReportService {
 
                 /* ---------- SECTION B ---------- */
                 y -= 6;
-                blackHeader(cs, fonts, lx, y, 520, "(B) Income from House Property :");
+                blackHeader(cs, fonts, lx, y, CONTENT_W, "(B) Income from House Property :");
                 y -= (14 + AFTER_HEADER_GAP);
 
                 long houseRentIncome = safe(e.getIncomeFromHouseRent());
@@ -161,7 +176,7 @@ public class IncomeTaxReportService {
 
                 /* ---------- SECTION C ---------- */
                 y -= 6;
-                blackHeader(cs, fonts, lx, y, 520, "(C) Income from Other Sources :");
+                blackHeader(cs, fonts, lx, y, CONTENT_W, "(C) Income from Other Sources :");
                 y -= (14 + AFTER_HEADER_GAP);
 
                 long interestSaving = safe(e.getInterestOnSaving());
@@ -175,14 +190,14 @@ public class IncomeTaxReportService {
 
                 /* ---------- GROSS TOTAL ---------- */
                 y -= 6;
-                blackHeader(cs, fonts, lx, y, 520, "GROSS TOTAL INCOME");
+                blackHeader(cs, fonts, lx, y, CONTENT_W, "GROSS TOTAL INCOME");
                 y -= (14 + AFTER_HEADER_GAP);
                 long grossTotalIncome = totalIncomeFromSalary + totalHouseProperty + totalOtherSources; // salary + house + other
                 y = money(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO Rs. 10/-)", grossTotalIncome, true);
 
                 /* ---------- TAX TABLE ---------- */
                 y -= 10;
-                blackHeader(cs, fonts, lx, y, 520, "CALCULATION OF INCOME TAX PAYABLE");
+                blackHeader(cs, fonts, lx, y, CONTENT_W, "CALCULATION OF INCOME TAX PAYABLE");
                 y -= (14 + AFTER_HEADER_GAP);
                 y = drawTaxTable(cs, fonts, lx, y, grossTotalIncome);
 
@@ -256,7 +271,8 @@ public class IncomeTaxReportService {
     private float drawTaxTable(PDPageContentStream cs, Fonts fonts, float x, float y, long taxableIncome) throws Exception {
 
         float rowH = 16;
-        float tableW = 520;
+        // Keep table slightly narrower than the main content width for better structure.
+        float tableW = 430;
         float[] cols = {x, x + 70, x + 260, x + 340, x + tableW};
 
         int rows = 8;
@@ -279,21 +295,23 @@ public class IncomeTaxReportService {
 
         String[][] data = {
                 {"(i) First", "Rs. 1 to Rs. 4,00,000", "NIL", "NIL"},
-                {"(ii) Next", "Rs. 4,00,001 to Rs. 8,00,000", "5.00%", slabTax[1] <= 0 ? "NIL" : fmt(fonts, slabTax[1])},
-                {"(iii) Next", "Rs. 8,00,001 to Rs. 12,00,000", "10.00%", slabTax[2] <= 0 ? "NIL" : fmt(fonts, slabTax[2])},
-                {"(iv) Next", "Rs. 12,00,001 to Rs. 16,00,000", "15.00%", slabTax[3] <= 0 ? "NIL" : fmt(fonts, slabTax[3])},
-                {"(v) Next", "Rs. 16,00,001 to Rs. 20,00,000", "20.00%", slabTax[4] <= 0 ? "NIL" : fmt(fonts, slabTax[4])},
-                {"(vi) Next", "Rs. 20,00,001 to Rs. 24,00,000", "25.00%", slabTax[5] <= 0 ? "NIL" : fmt(fonts, slabTax[5])},
-                {"(vii) Balance", "Rs. 24,00,001 to above", "30.00%", slabTax[6] <= 0 ? "NIL" : fmt(fonts, slabTax[6])},
-                {"", "", "Total :", totalTax <= 0 ? "NIL" : fmt(fonts, totalTax)}
+            {"(ii) Next", "Rs. 4,00,001 to Rs. 8,00,000", "5.00%", slabTax[1] <= 0 ? "NIL" : fmtNumber(slabTax[1])},
+            {"(iii) Next", "Rs. 8,00,001 to Rs. 12,00,000", "10.00%", slabTax[2] <= 0 ? "NIL" : fmtNumber(slabTax[2])},
+            {"(iv) Next", "Rs. 12,00,001 to Rs. 16,00,000", "15.00%", slabTax[3] <= 0 ? "NIL" : fmtNumber(slabTax[3])},
+            {"(v) Next", "Rs. 16,00,001 to Rs. 20,00,000", "20.00%", slabTax[4] <= 0 ? "NIL" : fmtNumber(slabTax[4])},
+            {"(vi) Next", "Rs. 20,00,001 to Rs. 24,00,000", "25.00%", slabTax[5] <= 0 ? "NIL" : fmtNumber(slabTax[5])},
+            {"(vii) Balance", "Rs. 24,00,001 to above", "30.00%", slabTax[6] <= 0 ? "NIL" : fmtNumber(slabTax[6])},
+            {"", "", "Total :", totalTax <= 0 ? "NIL" : fmtNumber(totalTax)}
         };
 
         float ty = y - 12;
+        float cellRightX = cols[4] - RIGHT_PADDING;
+        float cellRupeeX = cellRightX - TAX_TABLE_NUMBER_COL_W - RUPEE_GAP;
         for (String[] r : data) {
             text(cs, fonts.normal(), 9, cols[0] + 2, ty, r[0]);
             text(cs, fonts.normal(), 9, cols[1] + 2, ty, r[1]);
             text(cs, fonts.normal(), 9, cols[2] + 2, ty, r[2]);
-            text(cs, fonts.bold(), 9, cols[3] + 6, ty, r[3]);
+            drawCurrencyAmountRight(cs, fonts, fonts.bold(), 9, cellRupeeX, cellRightX, ty, r[3]);
             ty -= rowH;
         }
         return y - tableH;
@@ -357,11 +375,11 @@ public class IncomeTaxReportService {
 
         float h = 14f;
         float fontSize = 9f;
-        float bottomPadding = 2f; // space below text
+        float bottomPadding = 0f;
 
         /* ---- Draw black background ---- */
         cs.setNonStrokingColor(0f, 0f, 0f);
-        cs.addRect(x, y - h, w, h);
+        cs.addRect(x, y - h, w * BLACK_HEADER_WIDTH_FACTOR, h);
         cs.fill();
 
         /* ---- Calculate vertical centering ---- */
@@ -390,9 +408,50 @@ public class IncomeTaxReportService {
     }
 
     private float money(PDPageContentStream cs, Fonts fonts, float y, String l, double v, boolean bold) throws Exception {
-        text(cs, fonts.normal(), 9, 40, y, l);
-        text(cs, bold ? fonts.bold() : fonts.normal(), 9, 430, y, fmt(fonts, v));
+        text(cs, fonts.normal(), 9, CONTENT_X, y, l);
+        PDFont f = bold ? fonts.bold() : fonts.normal();
+        drawCurrencyAmountRight(cs, fonts, f, 9, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, y, fmtNumber(v));
         return y - 14;
+    }
+
+    private void drawCurrencyAmountRight(
+            PDPageContentStream cs,
+            Fonts fonts,
+            PDFont f,
+            int s,
+            float rupeeX,
+            float numberRightX,
+            float y,
+            String numberOrNil
+    ) throws Exception {
+        if (numberOrNil == null) numberOrNil = "";
+        String trimmed = numberOrNil.trim();
+        if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("NIL")) {
+            textRight(cs, f, s, numberRightX, y, trimmed.isEmpty() ? "NIL" : trimmed);
+            return;
+        }
+
+        // Currency symbol column (fixed x), number column (right-aligned).
+        String symbol = fonts.supportsRupee() ? "₹" : "Rs.";
+        text(cs, f, s, rupeeX, y, symbol);
+        textRight(cs, f, s, numberRightX, y, trimmed);
+    }
+
+    private void textRight(PDPageContentStream cs, PDFont f, int s, float rightX, float y, String t) throws Exception {
+        if (t == null) t = "";
+        float tw;
+        try {
+            tw = f.getStringWidth(t) / 1000 * s;
+        } catch (Exception ex) {
+            // Fallback: draw at a safe left offset if width can't be measured.
+            tw = 0;
+        }
+        float startX = rightX - tw;
+        text(cs, f, s, startX, y, t);
+    }
+
+    private String fmtNumber(double v) {
+        return String.format("%,.2f", v);
     }
 
     private void text(PDPageContentStream cs, PDFont f, int s, float x, float y, String t) throws Exception {
