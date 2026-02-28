@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormsModule } from '@angular/forms';
 import { CaptchaComponent } from '../captcha/captcha.component';
 import { LandingService } from '../services/landing.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { EMPTY, throwError } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
+import { ToastService } from '../toast/toast.service';
 
 @Component({
   selector: 'landing-page',
@@ -25,7 +26,9 @@ export class LandingPageComponent {
   constructor(
     private fb: FormBuilder,
     private landingService: LandingService,
-    private route: ActivatedRoute
+    private router: Router,
+    private route: ActivatedRoute,
+    private toast: ToastService
   ) {
     this.financialYears = this.getFinancialYears(3);
 
@@ -69,6 +72,10 @@ export class LandingPageComponent {
     return this.form.controls;
   }
 
+  goHome() {
+    this.router.navigate(['/']);
+  }
+
   private getFinancialYears(count: number): string[] {
     const now = new Date();
     const month = now.getMonth() + 1; // 1..12
@@ -88,7 +95,7 @@ export class LandingPageComponent {
     this.captchaWarning = '';
     if (!this.captchaVerified) {
       this.captchaWarning = 'Please complete the captcha verification before submitting.';
-      alert(this.captchaWarning);
+      this.toast.warning(this.captchaWarning);
       return;
     }
 
@@ -99,13 +106,15 @@ export class LandingPageComponent {
       payload.pan = (payload?.pan || '').trim().toUpperCase();
       const hasId = !!payload?.id;
 
-      const req$ = hasId
+      const save$ = hasId
         ? this.landingService.updateEmployee(payload.id, payload)
         : this.landingService.getEmployeeByPan(payload.pan).pipe(
             // If PAN exists, block save for New Form.
             switchMap((emp: any) => {
               if (emp && emp.id) {
-                alert('Hey, this PAN number is already existing in our database. Please use Edit/Update to modify it.');
+                this.toast.warning(
+                  'Hey, this PAN number is already existing in our database. Please use Edit/Update to modify it.'
+                );
                 return EMPTY;
               }
               return this.landingService.saveEmployee(payload);
@@ -119,6 +128,38 @@ export class LandingPageComponent {
             })
           );
 
+      const req$ = save$.pipe(
+        switchMap((res: any) => {
+          if (!res || !res.id) return EMPTY;
+          return this.landingService.generateReport(res.id).pipe(
+            switchMap((r: any) => {
+              const downloadUrl = r && r.downloadUrl ? r.downloadUrl : null;
+              if (!downloadUrl) {
+                return throwError(() => new Error('Report generation failed'));
+              }
+              const full = this.landingService.serverRoot() + downloadUrl;
+              const a = document.createElement('a');
+              a.href = full;
+              a.target = '_blank';
+              a.rel = 'noopener';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+
+              this.toast.success('Details saved and report generated successfully.');
+              this.resetFormToNew();
+              return EMPTY;
+            }),
+            catchError((err2: any) => {
+              // Data may be saved, but report generation can fail.
+              const msg = err2?.error?.message || err2?.message || 'Report generation failed.';
+              this.toast.error('Saved, but ' + msg);
+              return EMPTY;
+            })
+          );
+        })
+      );
+
       req$
         .pipe(
           finalize(() => {
@@ -126,47 +167,50 @@ export class LandingPageComponent {
           })
         )
         .subscribe({
-          next: (res) => {
-            if (!res) return; // e.g. EMPTY when duplicate PAN in New Form
-
-            console.log('Landing form submitted', this.form.value, res);
-            alert('Details saved successfully.');
-            // Trigger report generation and download
-            const id = res && res.id ? res.id : null;
-            if (id) {
-              this.landingService.generateReport(id).subscribe({
-                next: (r: any) => {
-                  const downloadUrl = r && r.downloadUrl ? r.downloadUrl : null;
-                  if (downloadUrl) {
-                    const full = this.landingService.serverRoot() + downloadUrl;
-                    const a = document.createElement('a');
-                    a.href = full;
-                    a.target = '_blank';
-                    a.rel = 'noopener';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                  }
-                },
-                error: (err2) => {
-                  console.error('Report generation failed', err2);
-                }
-              });
-            }
-            // Keep the form filled after save/update.
-          },
+          next: () => {},
           error: (err) => {
             console.error('Save failed', err);
             const msg = err?.error?.message || err?.message || 'Failed to save the details.';
-            alert(msg);
+            this.toast.error(msg);
           }
         });
     } else {
       this.form.markAllAsTouched();
       const empty = this.getEmptyFields();
       const msg = empty.length ? 'Please fill: ' + empty.join(', ') : 'Please complete the form.';
-      alert(msg);
+      this.toast.warning(msg);
     }
+  }
+
+  private resetFormToNew() {
+    this.form.reset({
+      id: null,
+      name: '',
+      post: '',
+      department: '',
+      pan: '',
+      employerTan: '',
+      treasuryName: '',
+      basicPay: null,
+      da: null,
+      ta: null,
+      daOnTransportAllowance: null,
+      hra: null,
+      medicalAllowances: null,
+      specialPay: null,
+      arrearDearnessAllowance: null,
+      arrearPayAndAllowances: null,
+      incomeFromHouseRent: null,
+      interestOnHousingLoan: null,
+      interestOnSaving: null,
+      interestOnFixedDeposit: null,
+      anyOtherIncome: null,
+      financialYear: ''
+    });
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+    this.captchaVerified = false;
+    this.captchaComp?.generate();
   }
 
   private prefillByPan(pan: string) {
@@ -176,7 +220,7 @@ export class LandingPageComponent {
     this.landingService.getEmployeeByPan(value).subscribe({
       next: (emp: any) => {
         if (!emp || !emp.id) {
-          alert('PAN is incorrect or not registered');
+          this.toast.error('PAN is incorrect or not registered');
           return;
         }
 
@@ -213,7 +257,7 @@ export class LandingPageComponent {
       error: (err) => {
         console.error('Search by PAN failed', err);
         const msg = err?.error?.message || 'PAN is incorrect or not registered';
-        alert(msg);
+        this.toast.error(msg);
       }
     });
   }

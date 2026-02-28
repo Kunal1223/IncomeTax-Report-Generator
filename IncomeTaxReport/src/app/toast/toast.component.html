@@ -1,0 +1,23 @@
+<div class="toast-host" aria-live="polite" aria-relevant="additions removals">
+  <div
+    class="toast"
+    *ngFor="let t of toasts(); trackBy: trackById"
+    [class.toast--success]="t.type === 'success'"
+    [class.toast--error]="t.type === 'error'"
+    [class.toast--warning]="t.type === 'warning'"
+    [class.toast--info]="t.type === 'info'"
+    role="status"
+  >
+    <div class="toast__row">
+      <div class="toast__msg">{{ t.message }}</div>
+      <button class="toast__close" type="button" (click)="dismiss(t.id)" aria-label="Dismiss notification">
+        ×
+      </button>
+    </div>
+
+    <div
+      class="toast__progress"
+      [style.animationDuration.ms]="t.durationMs"
+    ></div>
+  </div>
+</div>

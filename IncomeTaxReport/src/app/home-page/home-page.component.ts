@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LandingService } from '../services/landing.service';
+import { ToastService } from '../toast/toast.service';
 
 @Component({
   selector: 'home-page',
@@ -16,7 +17,7 @@ export class HomePageComponent {
   searchPan = '';
   searching = false;
 
-  constructor(private router: Router, private landingService: LandingService) {}
+  constructor(private router: Router, private landingService: LandingService, private toast: ToastService) {}
 
   goToNewForm() {
     this.router.navigate(['/landing']);
@@ -27,9 +28,9 @@ export class HomePageComponent {
   }
 
   searchAndEdit() {
-    const pan = (this.searchPan || '').trim();
+    const pan = (this.searchPan || '').trim().toUpperCase();
     if (!pan) {
-      alert('Please enter the PAN number');
+      this.toast.warning('Please enter the PAN number');
       return;
     }
 
@@ -38,7 +39,7 @@ export class HomePageComponent {
       next: (emp: any) => {
         this.searching = false;
         if (!emp || !emp.id) {
-          alert('PAN is incorrect or not registered');
+          this.toast.error('PAN is incorrect or not registered');
           return;
         }
         this.router.navigate(['/landing'], { queryParams: { pan } });
@@ -46,7 +47,7 @@ export class HomePageComponent {
       error: (err) => {
         this.searching = false;
         const msg = err?.error?.message || 'PAN is incorrect or not registered';
-        alert(msg);
+        this.toast.error(msg);
       }
     });
   }
