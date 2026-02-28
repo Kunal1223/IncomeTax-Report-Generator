@@ -9,12 +9,14 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // Allow Angular dev server (localhost:4200) to call the API during development.
+        // Allow the deployed UI (different host/port) to call the API.
+        // NOTE: We disable credentials so we can safely allow any origin.
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:4200")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);
+            .allowedOriginPatterns("*")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .exposedHeaders("Content-Disposition")
+            .allowCredentials(false)
+            .maxAge(3600);
     }
 }
