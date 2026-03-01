@@ -172,7 +172,6 @@ public class IncomeTaxReportService {
                 y = labelValue(cs, fonts, y, lx, 260, "Office Name:", e.getDepartment() != null ? e.getDepartment() : "", false);
                 y = labelValue(cs, fonts, y, lx, 260, "Office TAN:", e.getEmployerTan() != null ? e.getEmployerTan() : "", false);
                 y = labelValue(cs, fonts, y, lx, 260, "Treasury Name:", e.getTreasuryName() != null ? e.getTreasuryName() : "", false);
-                y = labelValue(cs, fonts, y, lx, 260, "Mobile Number:", e.getMobileNumber() != null ? e.getMobileNumber() : "", false);
 
                 /* ---------- SECTION A ---------- */
                 y -= BEFORE_BLACK_HEADER_GAP;
@@ -264,7 +263,7 @@ public class IncomeTaxReportService {
                 y -= 18;
                 TaxSummary tax = computeTaxSummary(grossTotalIncomeRounded);
                 long incomeTaxPaid = safe(e.getIncomeTaxPaid());
-                double remainingPayable = Math.max(0.0, tax.totalPayable() - incomeTaxPaid);
+                double remainingPayable =tax.totalPayable() - incomeTaxPaid;
                 y = money(cs, fonts, y, "Net Income Tax Payable", tax.netTax(), true);
                 y = money(cs, fonts, y,
                     "Add : 4% Health and Education Cess on " + currencyMark(fonts) + " " + fmtNumber(tax.netTax()),

@@ -41,17 +41,6 @@ button { padding: 10px 14px; border-radius: 6px; background: #1976d2; color: whi
 .main-title { font-size:2.5rem; margin:6px 0; color: #c5c2c2 }
 .sub-title { font-size:1rem; margin:0 0 12px; color: #b7b7b8 }
 
-.top-actions{display:flex;justify-content:flex-start;margin:6px 0 10px}
-.home-btn{
-  padding:10px 14px;
-  border-radius:8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
-  color:#eaf0ff;
-  cursor:pointer;
-}
-.home-btn:hover{background: rgba(255,255,255,0.06)}
-
 .it-card { padding:22px; border-radius:10px }
 .group { border:1px solid rgba(255,255,255,0.06); padding:14px; border-radius:8px; margin-bottom:20px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)) }
 .group legend{ padding:0 8px; font-weight:700; color:#eaf0ff }

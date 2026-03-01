@@ -105,6 +105,12 @@ public class EmployeeController {
             existing.setAnyOtherIncome(incoming.getAnyOtherIncome());
             existing.setFinancialYear(incoming.getFinancialYear());
 
+            // Other Information
+            existing.setMobileNumber(incoming.getMobileNumber());
+            existing.setPlace(incoming.getPlace());
+            existing.setReportDate(incoming.getReportDate());
+            existing.setIncomeTaxPaid(incoming.getIncomeTaxPaid());
+
             Employee saved = repo.save(existing);
             return ResponseEntity.ok(saved);
         }).orElseGet(() -> ResponseEntity.status(404).body(Map.of("message", "Employee not found")));

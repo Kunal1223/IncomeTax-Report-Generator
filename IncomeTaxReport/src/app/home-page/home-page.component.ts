@@ -19,8 +19,16 @@ export class HomePageComponent {
 
   constructor(private router: Router, private landingService: LandingService, private toast: ToastService) {}
 
+  goHome() {
+    this.router.navigate(['/']);
+  }
+
   goToNewForm() {
     this.router.navigate(['/landing']);
+  }
+
+  aboutUs() {
+    this.toast.info('TNA — Income Tax Report Generator');
   }
 
   toggleEdit() {

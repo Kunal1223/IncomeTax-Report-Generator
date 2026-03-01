@@ -78,10 +78,6 @@ export class LandingPageComponent {
     return this.form.controls;
   }
 
-  goHome() {
-    this.router.navigate(['/']);
-  }
-
   private getFinancialYears(count: number): string[] {
     const now = new Date();
     const month = now.getMonth() + 1; // 1..12
@@ -156,6 +152,8 @@ export class LandingPageComponent {
               a.remove();
 
               this.toast.success('Details saved and report generated successfully.');
+              this.resetFormToNew();
+              this.router.navigate(['/']);
               return EMPTY;
             }),
             catchError((err2: any) => {
