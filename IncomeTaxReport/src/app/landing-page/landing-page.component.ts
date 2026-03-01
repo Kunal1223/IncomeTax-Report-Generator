@@ -263,7 +263,6 @@ export class LandingPageComponent {
   }
 
   onCaptchaVerified(v: boolean) {
-    console.log('onCaptchaVerified', v);
     this.captchaVerified = !!v;
   }
 
