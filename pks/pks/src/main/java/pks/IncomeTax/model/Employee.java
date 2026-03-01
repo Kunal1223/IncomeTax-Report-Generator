@@ -19,6 +19,8 @@ public class Employee {
     private String employerTan;
     private String treasuryName;
 
+    private String mobileNumber;
+
     private Long basicPay;
     private Long da;
     private Long ta;
@@ -39,6 +41,11 @@ public class Employee {
     private Long anyOtherIncome;
 
     private String financialYear;
+
+    private String place;
+    // Date text expected in DDMMYYYY format (as entered by user)
+    private String reportDate;
+    private Long incomeTaxPaid;
 
     private Instant createdAt = Instant.now();
 
@@ -63,6 +70,9 @@ public class Employee {
 
     public String getTreasuryName() { return treasuryName; }
     public void setTreasuryName(String treasuryName) { this.treasuryName = treasuryName; }
+
+    public String getMobileNumber() { return mobileNumber; }
+    public void setMobileNumber(String mobileNumber) { this.mobileNumber = mobileNumber; }
 
     // Compatibility: some clients may send/expect the misspelling "tragary".
     public String getTragary() { return treasuryName; }
@@ -112,6 +122,15 @@ public class Employee {
 
     public String getFinancialYear() { return financialYear; }
     public void setFinancialYear(String financialYear) { this.financialYear = financialYear; }
+
+    public String getPlace() { return place; }
+    public void setPlace(String place) { this.place = place; }
+
+    public String getReportDate() { return reportDate; }
+    public void setReportDate(String reportDate) { this.reportDate = reportDate; }
+
+    public Long getIncomeTaxPaid() { return incomeTaxPaid; }
+    public void setIncomeTaxPaid(Long incomeTaxPaid) { this.incomeTaxPaid = incomeTaxPaid; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

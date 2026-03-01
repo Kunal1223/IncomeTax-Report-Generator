@@ -27,8 +27,9 @@
             <span class="error" *ngIf="f.department?.invalid && f.department?.touched">Department is required</span>
           </label>
           <label>PAN
-            <input formControlName="pan" placeholder="PAN number" />
-            <span class="error" *ngIf="f.pan?.invalid && f.pan?.touched">PAN is required</span>
+            <input formControlName="pan" placeholder="PAN number" maxlength="10" />
+            <span class="error" *ngIf="f.pan?.errors?.['required'] && f.pan?.touched">PAN is required</span>
+            <span class="error" *ngIf="f.pan?.errors?.['pattern'] && f.pan?.touched">Enter a valid PAN (e.g., ABCDE1234F)</span>
           </label>
           <label>Employer TAN
             <input formControlName="employerTan" placeholder="Employer TAN" />
@@ -37,6 +38,11 @@
           <label>Treasury Name
             <input formControlName="treasuryName" placeholder="Treasury Name" />
             <span class="error" *ngIf="f.treasuryName?.invalid && f.treasuryName?.touched">Treasury Name is required</span>
+          </label>
+
+          <label>Mobile Number
+            <input formControlName="mobileNumber" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" />
+            <span class="error" *ngIf="f.mobileNumber?.invalid && f.mobileNumber?.touched">Enter a valid 10-digit mobile number</span>
           </label>
         </div>
       </fieldset>
@@ -116,6 +122,24 @@
           </label>
           <label>Any other Income
             <input type="number" formControlName="anyOtherIncome" placeholder="Enter any other income" />
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="section">
+      <fieldset class="group">
+        <legend>Other Information</legend>
+        <div class="grid">
+          <label>Place
+            <input formControlName="place" placeholder="Enter place" />
+          </label>
+          <label>Date
+            <input formControlName="reportDate" placeholder="DDMMYYYY" />
+            <span class="error" *ngIf="f.reportDate?.invalid && f.reportDate?.touched">Date must be in DDMMYYYY format</span>
+          </label>
+          <label>Less Income Tax Paid
+            <input type="number" formControlName="incomeTaxPaid" placeholder="Enter income tax paid" />
           </label>
         </div>
       </fieldset>

@@ -37,9 +37,11 @@ export class LandingPageComponent {
       name: ['', Validators.required],
       post: ['', Validators.required],
       department: ['', Validators.required],
-      pan: ['', Validators.required],
+      pan: ['', [Validators.required, Validators.pattern(/^[A-Z]{5}[0-9]{4}[A-Z]$/i)]],
       employerTan: ['', Validators.required],
       treasuryName: ['', Validators.required],
+
+      mobileNumber: ['', [Validators.pattern(/^\d{10}$/)]],
 
       basicPay: [null, [Validators.required, Validators.min(0)]],
       da: [null, [Validators.required, Validators.min(0)]],
@@ -58,7 +60,11 @@ export class LandingPageComponent {
       interestOnSaving: [null, [Validators.min(0)]],
       interestOnFixedDeposit: [null, [Validators.min(0)]],
       anyOtherIncome: [null, [Validators.min(0)]],
-      financialYear: ['', Validators.required]
+      financialYear: ['', Validators.required],
+
+      place: [''],
+      reportDate: ['', [Validators.pattern(/^\d{8}$/)]],
+      incomeTaxPaid: [null, [Validators.min(0)]]
     });
     // no fallback captcha in use
 
@@ -104,6 +110,9 @@ export class LandingPageComponent {
 
       const payload = { ...this.form.value };
       payload.pan = (payload?.pan || '').trim().toUpperCase();
+      payload.mobileNumber = (payload?.mobileNumber || '').trim();
+      payload.place = (payload?.place || '').trim();
+      payload.reportDate = (payload?.reportDate || '').trim();
       const hasId = !!payload?.id;
 
       const save$ = hasId
@@ -190,6 +199,8 @@ export class LandingPageComponent {
       pan: '',
       employerTan: '',
       treasuryName: '',
+
+      mobileNumber: '',
       basicPay: null,
       da: null,
       ta: null,
@@ -204,7 +215,11 @@ export class LandingPageComponent {
       interestOnSaving: null,
       interestOnFixedDeposit: null,
       anyOtherIncome: null,
-      financialYear: ''
+      financialYear: '',
+
+      place: '',
+      reportDate: '',
+      incomeTaxPaid: null
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -231,6 +246,8 @@ export class LandingPageComponent {
           pan: emp.pan ?? '',
           employerTan: emp.employerTan ?? '',
           treasuryName: emp.treasuryName ?? emp.tragary ?? '',
+
+          mobileNumber: emp.mobileNumber ?? '',
           basicPay: emp.basicPay ?? 0,
           da: emp.da ?? 0,
           ta: emp.ta ?? 0,
@@ -247,7 +264,11 @@ export class LandingPageComponent {
           interestOnSaving: emp.interestOnSaving ?? 0,
           interestOnFixedDeposit: emp.interestOnFixedDeposit ?? 0,
           anyOtherIncome: emp.anyOtherIncome ?? 0,
-          financialYear: emp.financialYear ?? ''
+          financialYear: emp.financialYear ?? '',
+
+          place: emp.place ?? '',
+          reportDate: emp.reportDate ?? '',
+          incomeTaxPaid: emp.incomeTaxPaid ?? 0
         });
 
         this.captchaVerified = false;

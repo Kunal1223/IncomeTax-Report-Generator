@@ -10,7 +10,6 @@ import pks.IncomeTax.model.Employee;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
 
 @Service
 public class IncomeTaxReportService {
@@ -173,6 +172,7 @@ public class IncomeTaxReportService {
                 y = labelValue(cs, fonts, y, lx, 260, "Office Name:", e.getDepartment() != null ? e.getDepartment() : "", false);
                 y = labelValue(cs, fonts, y, lx, 260, "Office TAN:", e.getEmployerTan() != null ? e.getEmployerTan() : "", false);
                 y = labelValue(cs, fonts, y, lx, 260, "Treasury Name:", e.getTreasuryName() != null ? e.getTreasuryName() : "", false);
+                y = labelValue(cs, fonts, y, lx, 260, "Mobile Number:", e.getMobileNumber() != null ? e.getMobileNumber() : "", false);
 
                 /* ---------- SECTION A ---------- */
                 y -= BEFORE_BLACK_HEADER_GAP;
@@ -263,29 +263,33 @@ public class IncomeTaxReportService {
                 /* ---------- FINAL TOTALS ---------- */
                 y -= 18;
                 TaxSummary tax = computeTaxSummary(grossTotalIncomeRounded);
+                long incomeTaxPaid = safe(e.getIncomeTaxPaid());
+                double remainingPayable = Math.max(0.0, tax.totalPayable() - incomeTaxPaid);
                 y = money(cs, fonts, y, "Net Income Tax Payable", tax.netTax(), true);
                 y = money(cs, fonts, y,
                     "Add : 4% Health and Education Cess on " + currencyMark(fonts) + " " + fmtNumber(tax.netTax()),
                     tax.cess(), false);
                 y = moneyBoldLabel(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", tax.totalPayable(), true);
-                y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", 0L, false);
+                y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", incomeTaxPaid, false);
                 y = money(cs, fonts, y,
                     "Balance: Income Tax deposited / deducted through Salary for the month of February",
-                    0L, false);
+                    remainingPayable, false);
                 String fyShort = buildFinancialYearShort(e);
                 y = moneyBoldLabel(cs, fonts, y,
                     "Payable Income Tax and Health & Education Cess for Financial Year " + fyShort,
                     tax.totalPayable(), true);
 
                 /* ---------- FOOTER ---------- */
-                // Place: use department if available
-                String place = e.getDepartment() != null ? e.getDepartment() : "";
-                text(cs, fonts.normal(), 9, lx, 70, "Place: " + place);
-                text(cs, fonts.normal(), 9, lx, 55, "Date : " + LocalDate.now());
+                String place = e.getPlace() != null ? e.getPlace() : "";
+                String reportDate = e.getReportDate() != null ? e.getReportDate() : "";
+
+                // Structure: taxpayer signature, then place, then date
+                text(cs, fonts.normal(), 9, lx, 70, "Taxpayer's Signature");
+                text(cs, fonts.normal(), 9, lx, 55, "Place: " + place);
+                text(cs, fonts.normal(), 9, lx, 40, "Date : " + formatReportDate(reportDate));
 
                 text(cs, fonts.normal(), 9, pw - 240, 70, "Signature and Seal");
                 text(cs, fonts.normal(), 9, pw - 260, 55, "Drawing & Disbursing Officer");
-                text(cs, fonts.normal(), 9, lx, 40, "Taxpayer's Signature");
             }
             doc.save(file);
         }
@@ -314,6 +318,27 @@ public class IncomeTaxReportService {
                 febLastDay,
                 endYear
         );
+    }
+
+    private String formatReportDate(String ddmmyyyy) {
+        if (ddmmyyyy == null) return "";
+        String s = ddmmyyyy.trim();
+        if (!s.matches("\\d{8}")) return s;
+
+        String dd = s.substring(0, 2);
+        String mm = s.substring(2, 4);
+        String yyyy = s.substring(4, 8);
+
+        try {
+            int day = Integer.parseInt(dd);
+            int month = Integer.parseInt(mm);
+            if (month < 1 || month > 12) return s;
+            if (day < 1 || day > 31) return s;
+        } catch (NumberFormatException ex) {
+            return s;
+        }
+
+        return dd + "." + mm + "." + yyyy;
     }
 
     /* ===================== TAX TABLE ===================== */
