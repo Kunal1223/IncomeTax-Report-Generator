@@ -18,6 +18,12 @@ public class IncomeTaxReportService {
     private static final float EXTRA_PAGE_HEIGHT = 180f;
     private static final float AFTER_HEADER_GAP = 10f;
 
+    // Reduce whitespace ABOVE black headers a bit (requested), but keep the below-gap unchanged
+    // except for the "CALCULATION OF INCOME TAX PAYABLE" header.
+    private static final float BEFORE_BLACK_HEADER_GAP = 4f;
+    private static final float BEFORE_TAX_HEADER_GAP = 8f;
+    private static final float AFTER_TAX_HEADER_GAP = 6f;
+
     private static final float PAGE_WIDTH_REDUCTION = 25f;
 
     private static final float CONTENT_X = 40f;
@@ -30,8 +36,17 @@ public class IncomeTaxReportService {
     private static final float RUPEE_GAP = 4f;
     private static final float AMOUNT_RUPEE_X = AMOUNT_RIGHT_X - AMOUNT_NUMBER_COL_W - RUPEE_GAP;
 
+    // For Section B/C item rows: show amounts slightly left of the main amount column.
+    private static final float DETAIL_AMOUNT_SHIFT = 88f;
+    private static final float DETAIL_AMOUNT_RIGHT_X = AMOUNT_RIGHT_X - DETAIL_AMOUNT_SHIFT;
+    private static final float DETAIL_AMOUNT_RUPEE_X = DETAIL_AMOUNT_RIGHT_X - AMOUNT_NUMBER_COL_W - RUPEE_GAP;
+
     private static final float TAX_TABLE_NUMBER_COL_W = 70f;
+    private static final float TAX_TABLE_W = 430f;
     private static final float BLACK_HEADER_WIDTH_FACTOR = 0.60f;
+
+    // Small global font bump (applies to both text and numbers).
+    private static final int FONT_SIZE_BUMP = 1;
 
     private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
     }
@@ -41,6 +56,35 @@ public class IncomeTaxReportService {
 
     private long safe(Long v) {
         return v == null ? 0L : v.longValue();
+    }
+
+    private long roundToNearest10HalfUp(long value) {
+        // Nearest 10 with .5 rounding up: 34->30, 35->40, 36->40.
+        if (value >= 0) {
+            return ((value + 5) / 10) * 10;
+        }
+        long abs = Math.abs(value);
+        long roundedAbs = ((abs + 5) / 10) * 10;
+        return -roundedAbs;
+    }
+
+    private long standardDeduction(Employee e) {
+        int[] years = parseFinancialYear(e != null ? e.getFinancialYear() : null);
+
+        // If FY is missing/unparseable, the PDF header defaults to FY 2025-2026.
+        // Keep deduction consistent with that default.
+        if (years == null) {
+            return 75_000L;
+        }
+
+        // Default (and for FY 2023-2024, 2024-2025): 50,000
+        long deduction = 50_000L;
+
+        // FY 2025-2026: 75,000
+        if (years[0] == 2025 && years[1] == 2026) {
+            deduction = 75_000L;
+        }
+        return deduction;
     }
 
     private String buildYearHeader(Employee e) {
@@ -105,7 +149,8 @@ public class IncomeTaxReportService {
                 float ph = page.getMediaBox().getHeight();
 
                 /* ---------- OUTER BORDER ---------- */
-                cs.setLineWidth(1.4f);
+                cs.setStrokingColor(0f, 0f, 0f);
+                cs.setLineWidth(1.8f);
                 cs.setLineDashPattern(new float[]{6, 3}, 0);
                 cs.addRect(20, 20, pw - 40, ph - 40);
                 cs.stroke();
@@ -121,16 +166,16 @@ public class IncomeTaxReportService {
                 float lx = 40;
 
                 /* ---------- BASIC DETAILS ---------- */
-                y = labelValue(cs, fonts, y, lx, 260, "Name of the Employee:", e.getName() != null ? e.getName() : "");
-                y = labelValue(cs, fonts, y, lx, 260, "Designation:", e.getPost() != null ? e.getPost() : "");
-                y = labelValue(cs, fonts, y, lx, 260, "Permanent Account Number (PAN):", e.getPan() != null ? e.getPan() : "");
+                y = labelValue(cs, fonts, y, lx, 260, "Name of the Employee:", e.getName() != null ? e.getName() : "", true);
+                y = labelValue(cs, fonts, y, lx, 260, "Designation:", e.getPost() != null ? e.getPost() : "", false);
+                y = labelValue(cs, fonts, y, lx, 260, "Permanent Account Number (PAN):", e.getPan() != null ? e.getPan() : "", true);
                 // As per UI mapping: Office Name = department, Office TAN = employerTan, Treasury Name = treasuryName
-                y = labelValue(cs, fonts, y, lx, 260, "Office Name:", e.getDepartment() != null ? e.getDepartment() : "");
-                y = labelValue(cs, fonts, y, lx, 260, "Office TAN:", e.getEmployerTan() != null ? e.getEmployerTan() : "");
-                y = labelValue(cs, fonts, y, lx, 260, "Treasury Name:", e.getTreasuryName() != null ? e.getTreasuryName() : "");
+                y = labelValue(cs, fonts, y, lx, 260, "Office Name:", e.getDepartment() != null ? e.getDepartment() : "", false);
+                y = labelValue(cs, fonts, y, lx, 260, "Office TAN:", e.getEmployerTan() != null ? e.getEmployerTan() : "", false);
+                y = labelValue(cs, fonts, y, lx, 260, "Treasury Name:", e.getTreasuryName() != null ? e.getTreasuryName() : "", false);
 
                 /* ---------- SECTION A ---------- */
-                y -= 6;
+                y -= BEFORE_BLACK_HEADER_GAP;
                 blackHeader(cs, fonts, lx, y, CONTENT_W, "(A) Income from Salary :");
                 y -= (14 + AFTER_HEADER_GAP); // 14 = header height
 
@@ -159,24 +204,25 @@ public class IncomeTaxReportService {
                 long totalIncomeFromSalary = basic + daVal + hraVal + med + taVal + daOnTransport + specialPay + arrearDA + arrearPay;
                 y = moneyBoldLabel(cs, fonts, y, "(10) Total Income from Salary:", totalIncomeFromSalary, true);
 
-                long standardDeduction = 0L;
+                long standardDeduction = standardDeduction(e);
                 y = money(cs, fonts, y, "(-) Less : Standard deduction u/s 16(1)", standardDeduction, false);
-                y = moneyBoldLabel(cs, fonts, y, "Total Income from Salary", totalIncomeFromSalary - standardDeduction, true);
+                long incomeFromSalaryAfterDeduction = Math.max(0L, totalIncomeFromSalary - standardDeduction);
+                y = moneyBoldLabel(cs, fonts, y, "Total Income from Salary", incomeFromSalaryAfterDeduction, true);
 
                 /* ---------- SECTION B ---------- */
-                y -= 6;
+                y -= BEFORE_BLACK_HEADER_GAP;
                 blackHeader(cs, fonts, lx, y, CONTENT_W, "(B) Income from House Property :");
                 y -= (14 + AFTER_HEADER_GAP);
 
                 long houseRentIncome = safe(e.getIncomeFromHouseRent());
                 long housingLoanInterest = safe(e.getInterestOnHousingLoan());
                 long totalHouseProperty = houseRentIncome - housingLoanInterest;
-                y = money(cs, fonts, y, "(i) Income from House Rent", houseRentIncome, false);
-                y = money(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", housingLoanInterest, false);
+                y = moneyAt(cs, fonts, y, "(i) Income from House Rent", houseRentIncome, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
+                y = moneyAt(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", housingLoanInterest, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
                 y = moneyBoldLabel(cs, fonts, y, "Total Income from House Property", totalHouseProperty, true);
 
                 /* ---------- SECTION C ---------- */
-                y -= 6;
+                y -= BEFORE_BLACK_HEADER_GAP;
                 blackHeader(cs, fonts, lx, y, CONTENT_W, "(C) Income from Other Sources :");
                 y -= (14 + AFTER_HEADER_GAP);
 
@@ -184,23 +230,24 @@ public class IncomeTaxReportService {
                 long interestFD = safe(e.getInterestOnFixedDeposit());
                 long otherIncome = safe(e.getAnyOtherIncome());
                 long totalOtherSources = interestSaving + interestFD + otherIncome;
-                y = money(cs, fonts, y, "(i) Interest on Saving A/c of Bank/Post Office", interestSaving, false);
-                y = money(cs, fonts, y, "(ii) Interest on Fixed Deposit / Recurring Deposit / KVP etc.", interestFD, false);
-                y = money(cs, fonts, y, "(iii) Any other Income / Commission / etc.", otherIncome, false);
+                y = moneyAt(cs, fonts, y, "(i) Interest on Saving A/c of Bank/Post Office", interestSaving, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
+                y = moneyAt(cs, fonts, y, "(ii) Interest on Fixed Deposit / Recurring Deposit / KVP etc.", interestFD, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
+                y = moneyAt(cs, fonts, y, "(iii) Any other Income / Commission / etc.", otherIncome, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
                 y = moneyBoldLabel(cs, fonts, y, "Total Income from Other Sources", totalOtherSources, true);
 
                 /* ---------- GROSS TOTAL ---------- */
-                y -= 6;
-                blackHeader(cs, fonts, lx, y, CONTENT_W, "GROSS TOTAL INCOME");
+                y -= BEFORE_BLACK_HEADER_GAP;
+                long grossTotalIncome = incomeFromSalaryAfterDeduction + totalHouseProperty + totalOtherSources; // salary(after std deduction) + house + other
+                blackHeaderWithAmount(cs, fonts, lx, y, CONTENT_W, "GROSS TOTAL INCOME", grossTotalIncome);
                 y -= (14 + AFTER_HEADER_GAP);
-                long grossTotalIncome = totalIncomeFromSalary + totalHouseProperty + totalOtherSources; // salary + house + other
-                y = moneyBoldLabel(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO " + currencyMark(fonts) + " 10/-)", grossTotalIncome, true);
+                long grossTotalIncomeRounded = roundToNearest10HalfUp(grossTotalIncome);
+                y = moneyBoldLabel(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO " + currencyMark(fonts) + " 10/-)", grossTotalIncomeRounded, true);
 
                 /* ---------- TAX TABLE ---------- */
-                y -= 10;
-                blackHeader(cs, fonts, lx, y, CONTENT_W, "CALCULATION OF INCOME TAX PAYABLE");
-                y -= (14 + AFTER_HEADER_GAP);
-                y = drawTaxTable(cs, fonts, lx, y, grossTotalIncome);
+                y -= BEFORE_TAX_HEADER_GAP;
+                blackHeaderExact(cs, fonts, lx, y, TAX_TABLE_W, "CALCULATION OF INCOME TAX PAYABLE");
+                y -= (14 + AFTER_TAX_HEADER_GAP);
+                y = drawTaxTable(cs, fonts, lx, y, grossTotalIncomeRounded);
 
                 /* ---------- FOOT NOTES ---------- */
                 y -= 12;
@@ -215,9 +262,11 @@ public class IncomeTaxReportService {
 
                 /* ---------- FINAL TOTALS ---------- */
                 y -= 18;
-                TaxSummary tax = computeTaxSummary(grossTotalIncome);
+                TaxSummary tax = computeTaxSummary(grossTotalIncomeRounded);
                 y = money(cs, fonts, y, "Net Income Tax Payable", tax.netTax(), true);
-                y = money(cs, fonts, y, "Add : 4% Health and Education Cess on " + currencyMark(fonts), tax.cess(), false);
+                y = money(cs, fonts, y,
+                    "Add : 4% Health and Education Cess on " + currencyMark(fonts) + " " + fmtNumber(tax.netTax()),
+                    tax.cess(), false);
                 y = moneyBoldLabel(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", tax.totalPayable(), true);
                 y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", 0L, false);
                 y = money(cs, fonts, y,
@@ -273,7 +322,7 @@ public class IncomeTaxReportService {
 
         float rowH = 16;
         // Keep table slightly narrower than the main content width for better structure.
-        float tableW = 430;
+        float tableW = TAX_TABLE_W;
         float[] cols = {x, x + 70, x + 260, x + 340, x + tableW};
 
         int rows = 8;
@@ -373,16 +422,37 @@ public class IncomeTaxReportService {
 
     /* ===================== HELPERS ===================== */
 
+    private int effectiveFontSize(int s) {
+        // Only bump the smaller body fonts; keep larger header fonts stable.
+        if (s >= 12) return s;
+        return Math.max(1, s + FONT_SIZE_BUMP);
+    }
+
+    private void textRaw(PDPageContentStream cs, PDFont f, int s, float x, float y, String t) throws Exception {
+        if (t == null) t = "";
+        cs.beginText();
+        cs.setFont(f, s);
+        cs.newLineAtOffset(x, y);
+        cs.showText(t);
+        cs.endText();
+    }
+
     private void blackHeader(PDPageContentStream cs, Fonts fonts,
                          float x, float y, float w, String text) throws Exception {
 
+        blackHeaderExact(cs, fonts, x, y, w * BLACK_HEADER_WIDTH_FACTOR, text);
+    }
+
+    private void blackHeaderExact(PDPageContentStream cs, Fonts fonts,
+                             float x, float y, float barWidth, String text) throws Exception {
+
         float h = 14f;
-        float fontSize = 9f;
+        float fontSize = effectiveFontSize(9);
         float bottomPadding = 0f;
 
         /* ---- Draw black background ---- */
         cs.setNonStrokingColor(0f, 0f, 0f);
-        cs.addRect(x, y - h, w * BLACK_HEADER_WIDTH_FACTOR, h);
+        cs.addRect(x, y - h, barWidth, h);
         cs.fill();
 
         /* ---- Calculate vertical centering ---- */
@@ -404,24 +474,112 @@ public class IncomeTaxReportService {
         cs.setNonStrokingColor(0f, 0f, 0f);
     }
 
-    private float labelValue(PDPageContentStream cs, Fonts fonts, float y, float lx, float vx, String l, String v) throws Exception {
-        text(cs, fonts.normal(), 9, lx, y, l);
-        text(cs, fonts.bold(), 9, vx, y, v == null ? "" : v);
+    private void blackHeaderWithAmount(
+            PDPageContentStream cs,
+            Fonts fonts,
+            float x,
+            float y,
+            float w,
+            String headerText,
+            double amount
+    ) throws Exception {
+
+        float h = 14f;
+
+        // Draw the black bar + header text.
+        blackHeader(cs, fonts, x, y, w, headerText);
+
+        // Vertically center the amount on the same header row.
+        float fontSize = effectiveFontSize(9);
+        PDFont font = fonts.bold();
+        float ascent = font.getFontDescriptor().getAscent() / 1000 * fontSize;
+        float descent = font.getFontDescriptor().getDescent() / 1000 * fontSize;
+        float textHeight = ascent - descent;
+        float textY = y - h + (h - textHeight) / 2 - descent;
+
+        drawCurrencyAmountRight(cs, fonts, fonts.bold(), 9, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, textY, fmtNumber(amount));
+    }
+
+    private float labelValue(PDPageContentStream cs, Fonts fonts, float y, float lx, float vx, String l, String v, boolean valueBold) throws Exception {
+        PDFont labelFont = fonts.normal();
+        int labelSize = 9;
+        text(cs, labelFont, labelSize, lx, y, l);
+        drawLeaderLine(cs, labelFont, labelSize, lx, y, l, vx - 4);
+        text(cs, valueBold ? fonts.bold() : fonts.normal(), 9, vx, y, v == null ? "" : v);
         return y - 14;
     }
 
     private float money(PDPageContentStream cs, Fonts fonts, float y, String l, double v, boolean bold) throws Exception {
-        text(cs, fonts.normal(), 9, CONTENT_X, y, l);
+        PDFont labelFont = fonts.normal();
+        int labelSize = 9;
+        text(cs, labelFont, labelSize, CONTENT_X, y, l);
+        drawLeaderLine(cs, labelFont, labelSize, CONTENT_X, y, l, AMOUNT_RUPEE_X - 6);
         PDFont f = bold ? fonts.bold() : fonts.normal();
         drawCurrencyAmountRight(cs, fonts, f, 9, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, y, fmtNumber(v));
         return y - 14;
     }
 
+    private float moneyAt(
+            PDPageContentStream cs,
+            Fonts fonts,
+            float y,
+            String l,
+            double v,
+            boolean bold,
+            float rupeeX,
+            float rightX
+    ) throws Exception {
+        PDFont labelFont = fonts.normal();
+        int labelSize = 9;
+        text(cs, labelFont, labelSize, CONTENT_X, y, l);
+        drawLeaderLine(cs, labelFont, labelSize, CONTENT_X, y, l, rupeeX - 6);
+        PDFont f = bold ? fonts.bold() : fonts.normal();
+        drawCurrencyAmountRight(cs, fonts, f, 9, rupeeX, rightX, y, fmtNumber(v));
+        return y - 14;
+    }
+
     private float moneyBoldLabel(PDPageContentStream cs, Fonts fonts, float y, String l, double v, boolean boldAmount) throws Exception {
-        text(cs, fonts.bold(), 9, CONTENT_X, y, l);
+        PDFont labelFont = fonts.bold();
+        int labelSize = 9;
+        text(cs, labelFont, labelSize, CONTENT_X, y, l);
+        drawLeaderLine(cs, labelFont, labelSize, CONTENT_X, y, l, AMOUNT_RUPEE_X - 6);
         PDFont f = boldAmount ? fonts.bold() : fonts.normal();
         drawCurrencyAmountRight(cs, fonts, f, 9, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, y, fmtNumber(v));
         return y - 14;
+    }
+
+    private void drawLeaderLine(
+            PDPageContentStream cs,
+            PDFont font,
+            int fontSize,
+            float x,
+            float y,
+            String text,
+            float endX
+    ) throws Exception {
+        if (text == null) return;
+
+        int es = effectiveFontSize(fontSize);
+        float startX;
+        try {
+            float tw = font.getStringWidth(text) / 1000 * es;
+            startX = x + tw + 4;
+        } catch (Exception ex) {
+            return;
+        }
+
+        // Only draw if there's visible space.
+        if (endX <= startX + 12) return;
+
+        cs.saveGraphicsState();
+        cs.setStrokingColor(0f, 0f, 0f);
+        cs.setLineWidth(0.3f);
+        // Slightly below baseline so it reads like a guide.
+        float ly = y + 2;
+        cs.moveTo(startX, ly);
+        cs.lineTo(endX, ly);
+        cs.stroke();
+        cs.restoreGraphicsState();
     }
 
     private String currencyMark(Fonts fonts) {
@@ -453,15 +611,16 @@ public class IncomeTaxReportService {
 
     private void textRight(PDPageContentStream cs, PDFont f, int s, float rightX, float y, String t) throws Exception {
         if (t == null) t = "";
+        int es = effectiveFontSize(s);
         float tw;
         try {
-            tw = f.getStringWidth(t) / 1000 * s;
+            tw = f.getStringWidth(t) / 1000 * es;
         } catch (Exception ex) {
             // Fallback: draw at a safe left offset if width can't be measured.
             tw = 0;
         }
         float startX = rightX - tw;
-        text(cs, f, s, startX, y, t);
+        textRaw(cs, f, es, startX, y, t);
     }
 
     private String fmtNumber(double v) {
@@ -469,16 +628,14 @@ public class IncomeTaxReportService {
     }
 
     private void text(PDPageContentStream cs, PDFont f, int s, float x, float y, String t) throws Exception {
-        cs.beginText();
-        cs.setFont(f, s);
-        cs.newLineAtOffset(x, y);
-        cs.showText(t);
-        cs.endText();
+        int es = effectiveFontSize(s);
+        textRaw(cs, f, es, x, y, t);
     }
 
     private void center(PDPageContentStream cs, PDFont f, int s, float w, float y, String t) throws Exception {
-        float tw = f.getStringWidth(t) / 1000 * s;
-        text(cs, f, s, (w - tw) / 2, y, t);
+        int es = effectiveFontSize(s);
+        float tw = f.getStringWidth(t) / 1000 * es;
+        textRaw(cs, f, es, (w - tw) / 2, y, t);
     }
 
     private Fonts loadFonts(PDDocument doc) throws Exception {
