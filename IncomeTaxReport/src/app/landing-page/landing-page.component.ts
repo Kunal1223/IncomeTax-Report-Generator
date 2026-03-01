@@ -147,7 +147,6 @@ export class LandingPageComponent {
               a.remove();
 
               this.toast.success('Details saved and report generated successfully.');
-              this.resetFormToNew();
               return EMPTY;
             }),
             catchError((err2: any) => {

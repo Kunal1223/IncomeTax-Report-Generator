@@ -105,10 +105,12 @@ public class IncomeTaxReportService {
                 float ph = page.getMediaBox().getHeight();
 
                 /* ---------- OUTER BORDER ---------- */
-                cs.setLineDashPattern(new float[]{4, 3}, 0);
+                cs.setLineWidth(1.4f);
+                cs.setLineDashPattern(new float[]{6, 3}, 0);
                 cs.addRect(20, 20, pw - 40, ph - 40);
                 cs.stroke();
                 cs.setLineDashPattern(new float[]{}, 0);
+                cs.setLineWidth(1.0f);
 
                 /* ---------- HEADER ---------- */
                 center(cs, fonts.bold(), 12, pw, ph - 60, "Schedule of Income Tax");
@@ -117,7 +119,6 @@ public class IncomeTaxReportService {
 
                 float y = ph - 110;
                 float lx = 40;
-                float rx = 430;
 
                 /* ---------- BASIC DETAILS ---------- */
                 y = labelValue(cs, fonts, y, lx, 260, "Name of the Employee:", e.getName() != null ? e.getName() : "");
@@ -156,11 +157,11 @@ public class IncomeTaxReportService {
                 y = money(cs, fonts, y, "(9) Arrear of Pay and Allowances:", arrearPay, false);
 
                 long totalIncomeFromSalary = basic + daVal + hraVal + med + taVal + daOnTransport + specialPay + arrearDA + arrearPay;
-                y = money(cs, fonts, y, "(10) Total Income from Salary:", totalIncomeFromSalary, true);
+                y = moneyBoldLabel(cs, fonts, y, "(10) Total Income from Salary:", totalIncomeFromSalary, true);
 
                 long standardDeduction = 0L;
                 y = money(cs, fonts, y, "(-) Less : Standard deduction u/s 16(1)", standardDeduction, false);
-                y = money(cs, fonts, y, "Total Income from Salary", totalIncomeFromSalary - standardDeduction, true);
+                y = moneyBoldLabel(cs, fonts, y, "Total Income from Salary", totalIncomeFromSalary - standardDeduction, true);
 
                 /* ---------- SECTION B ---------- */
                 y -= 6;
@@ -169,10 +170,10 @@ public class IncomeTaxReportService {
 
                 long houseRentIncome = safe(e.getIncomeFromHouseRent());
                 long housingLoanInterest = safe(e.getInterestOnHousingLoan());
-                long totalHouseProperty = houseRentIncome + housingLoanInterest;
+                long totalHouseProperty = houseRentIncome - housingLoanInterest;
                 y = money(cs, fonts, y, "(i) Income from House Rent", houseRentIncome, false);
                 y = money(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", housingLoanInterest, false);
-                y = money(cs, fonts, y, "Total Income from House Property", totalHouseProperty, true);
+                y = moneyBoldLabel(cs, fonts, y, "Total Income from House Property", totalHouseProperty, true);
 
                 /* ---------- SECTION C ---------- */
                 y -= 6;
@@ -186,14 +187,14 @@ public class IncomeTaxReportService {
                 y = money(cs, fonts, y, "(i) Interest on Saving A/c of Bank/Post Office", interestSaving, false);
                 y = money(cs, fonts, y, "(ii) Interest on Fixed Deposit / Recurring Deposit / KVP etc.", interestFD, false);
                 y = money(cs, fonts, y, "(iii) Any other Income / Commission / etc.", otherIncome, false);
-                y = money(cs, fonts, y, "Total Income from Other Sources", totalOtherSources, true);
+                y = moneyBoldLabel(cs, fonts, y, "Total Income from Other Sources", totalOtherSources, true);
 
                 /* ---------- GROSS TOTAL ---------- */
                 y -= 6;
                 blackHeader(cs, fonts, lx, y, CONTENT_W, "GROSS TOTAL INCOME");
                 y -= (14 + AFTER_HEADER_GAP);
                 long grossTotalIncome = totalIncomeFromSalary + totalHouseProperty + totalOtherSources; // salary + house + other
-                y = money(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO Rs. 10/-)", grossTotalIncome, true);
+                y = moneyBoldLabel(cs, fonts, y, "GROSS TOTAL INCOME (ROUNDED OFF UPTO " + currencyMark(fonts) + " 10/-)", grossTotalIncome, true);
 
                 /* ---------- TAX TABLE ---------- */
                 y -= 10;
@@ -204,33 +205,33 @@ public class IncomeTaxReportService {
                 /* ---------- FOOT NOTES ---------- */
                 y -= 12;
                 text(cs, fonts.normal(), 8, lx, y,
-                        "* Tax-free Income: Basic exemption limit is Rs 4,00,000 for male/female taxpayers below 60 years of age.");
+                    "* Tax-free Income: Basic exemption limit is " + currencyMark(fonts) + " 4,00,000 for male/female taxpayers below 60 years of age.");
                 y -= 12;
                 text(cs, fonts.normal(), 8, lx, y,
-                        "Less: Tax Relief under Section 87A under New Tax Regime (Rebate up to Rs 60,000 for total income up to Rs 12 lakhs).");
+                    "Less: Tax Relief under Section 87A under New Tax Regime (Rebate up to " + currencyMark(fonts) + " 60,000 for total income up to " + currencyMark(fonts) + " 12 lakhs).");
                 y -= 12;
                 text(cs, fonts.normal(), 8, lx, y,
-                        "If total income exceeds Rs 12 lakhs, Marginal Relief will be granted.");
+                    "If total income exceeds " + currencyMark(fonts) + " 12 lakhs, Marginal Relief will be granted.");
 
                 /* ---------- FINAL TOTALS ---------- */
                 y -= 18;
                 TaxSummary tax = computeTaxSummary(grossTotalIncome);
                 y = money(cs, fonts, y, "Net Income Tax Payable", tax.netTax(), true);
-                y = money(cs, fonts, y, "Add : 4% Health and Education Cess on Rs.", tax.cess(), false);
-                y = money(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", tax.totalPayable(), true);
+                y = money(cs, fonts, y, "Add : 4% Health and Education Cess on " + currencyMark(fonts), tax.cess(), false);
+                y = moneyBoldLabel(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", tax.totalPayable(), true);
                 y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", 0L, false);
                 y = money(cs, fonts, y,
                     "Balance: Income Tax deposited / deducted through Salary for the month of February",
                     0L, false);
                 String fyShort = buildFinancialYearShort(e);
-                y = money(cs, fonts, y,
+                y = moneyBoldLabel(cs, fonts, y,
                     "Payable Income Tax and Health & Education Cess for Financial Year " + fyShort,
                     tax.totalPayable(), true);
 
                 /* ---------- FOOTER ---------- */
                 // Place: use department if available
                 String place = e.getDepartment() != null ? e.getDepartment() : "";
-                text(cs, fonts.normal(), 9, lx, 70, "Place: " + "Bettiah");
+                text(cs, fonts.normal(), 9, lx, 70, "Place: " + place);
                 text(cs, fonts.normal(), 9, lx, 55, "Date : " + LocalDate.now());
 
                 text(cs, fonts.normal(), 9, pw - 240, 70, "Signature and Seal");
@@ -293,14 +294,16 @@ public class IncomeTaxReportService {
         double totalTax = 0.0;
         for (double v : slabTax) totalTax += v;
 
+        String curr = currencyMark(fonts);
+
         String[][] data = {
-                {"(i) First", "Rs. 1 to Rs. 4,00,000", "NIL", "NIL"},
-            {"(ii) Next", "Rs. 4,00,001 to Rs. 8,00,000", "5.00%", slabTax[1] <= 0 ? "NIL" : fmtNumber(slabTax[1])},
-            {"(iii) Next", "Rs. 8,00,001 to Rs. 12,00,000", "10.00%", slabTax[2] <= 0 ? "NIL" : fmtNumber(slabTax[2])},
-            {"(iv) Next", "Rs. 12,00,001 to Rs. 16,00,000", "15.00%", slabTax[3] <= 0 ? "NIL" : fmtNumber(slabTax[3])},
-            {"(v) Next", "Rs. 16,00,001 to Rs. 20,00,000", "20.00%", slabTax[4] <= 0 ? "NIL" : fmtNumber(slabTax[4])},
-            {"(vi) Next", "Rs. 20,00,001 to Rs. 24,00,000", "25.00%", slabTax[5] <= 0 ? "NIL" : fmtNumber(slabTax[5])},
-            {"(vii) Balance", "Rs. 24,00,001 to above", "30.00%", slabTax[6] <= 0 ? "NIL" : fmtNumber(slabTax[6])},
+            {"(i) First", curr + " 1 to " + curr + " 4,00,000", "NIL", "NIL"},
+            {"(ii) Next", curr + " 4,00,001 to " + curr + " 8,00,000", "5.00%", slabTax[1] <= 0 ? "NIL" : fmtNumber(slabTax[1])},
+            {"(iii) Next", curr + " 8,00,001 to " + curr + " 12,00,000", "10.00%", slabTax[2] <= 0 ? "NIL" : fmtNumber(slabTax[2])},
+            {"(iv) Next", curr + " 12,00,001 to " + curr + " 16,00,000", "15.00%", slabTax[3] <= 0 ? "NIL" : fmtNumber(slabTax[3])},
+            {"(v) Next", curr + " 16,00,001 to " + curr + " 20,00,000", "20.00%", slabTax[4] <= 0 ? "NIL" : fmtNumber(slabTax[4])},
+            {"(vi) Next", curr + " 20,00,001 to " + curr + " 24,00,000", "25.00%", slabTax[5] <= 0 ? "NIL" : fmtNumber(slabTax[5])},
+            {"(vii) Balance", curr + " 24,00,001 to above", "30.00%", slabTax[6] <= 0 ? "NIL" : fmtNumber(slabTax[6])},
             {"", "", "Total :", totalTax <= 0 ? "NIL" : fmtNumber(totalTax)}
         };
 
@@ -414,6 +417,17 @@ public class IncomeTaxReportService {
         return y - 14;
     }
 
+    private float moneyBoldLabel(PDPageContentStream cs, Fonts fonts, float y, String l, double v, boolean boldAmount) throws Exception {
+        text(cs, fonts.bold(), 9, CONTENT_X, y, l);
+        PDFont f = boldAmount ? fonts.bold() : fonts.normal();
+        drawCurrencyAmountRight(cs, fonts, f, 9, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, y, fmtNumber(v));
+        return y - 14;
+    }
+
+    private String currencyMark(Fonts fonts) {
+        return fonts.supportsRupee() ? "₹" : "Rs.";
+    }
+
     private void drawCurrencyAmountRight(
             PDPageContentStream cs,
             Fonts fonts,
@@ -497,10 +511,4 @@ public class IncomeTaxReportService {
         }
     }
 
-    private String fmt(Fonts fonts, double v) {
-        if (fonts.supportsRupee()) {
-            return String.format("₹ %,.2f", v);
-        }
-        return String.format("Rs. %,.2f", v);
-    }
 }
