@@ -504,7 +504,6 @@ public class IncomeTaxReportService {
         PDFont labelFont = fonts.normal();
         int labelSize = 9;
         text(cs, labelFont, labelSize, lx, y, l);
-        drawLeaderLine(cs, labelFont, labelSize, lx, y, l, vx - 4);
         text(cs, valueBold ? fonts.bold() : fonts.normal(), 9, vx, y, v == null ? "" : v);
         return y - 14;
     }
