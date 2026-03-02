@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import pks.IncomeTax.model.Employee;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -48,7 +49,10 @@ public class IncomeTaxReportService {
     // Small global font bump (applies to both text and numbers).
     private static final int FONT_SIZE_BUMP = 1;
 
-    private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
+    private static final float SYNTHETIC_BOLD_OFFSET_MIN = 0.35f;
+    private static final float SYNTHETIC_BOLD_OFFSET_FACTOR = 0.02f;
+
+    private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee, boolean syntheticBold) {
     }
 
     private record TaxSummary(double taxBeforeRelief, double marginalRelief, double netTax, double cess, double totalPayable) {
@@ -160,7 +164,7 @@ public class IncomeTaxReportService {
                 cs.setLineWidth(1.0f);
 
                 /* ---------- HEADER ---------- */
-                center(cs, fonts.bold(), 12, pw, ph - 60, "Schedule of Income Tax");
+                textMaybeSyntheticBoldCenter(cs, fonts, fonts.bold(), 12, pw, ph - 60, "Schedule of Income Tax");
                 center(cs, fonts.normal(), 9, pw, ph - 70, "(Fill in four copies)");
                 center(cs, fonts.normal(), 9, pw, ph - 86, buildYearHeader(e));
 
@@ -549,6 +553,63 @@ public class IncomeTaxReportService {
         cs.endText();
     }
 
+    private boolean shouldSyntheticBold(Fonts fonts, PDFont font) {
+        return fonts != null && fonts.syntheticBold() && font == fonts.bold();
+    }
+
+    private float syntheticBoldOffset(int effectiveFontSize) {
+        return Math.max(SYNTHETIC_BOLD_OFFSET_MIN, effectiveFontSize * SYNTHETIC_BOLD_OFFSET_FACTOR);
+    }
+
+    private void textMaybeSyntheticBoldLeft(
+            PDPageContentStream cs,
+            Fonts fonts,
+            PDFont f,
+            int s,
+            float x,
+            float y,
+            String t
+    ) throws Exception {
+        int es = effectiveFontSize(s);
+        textRaw(cs, f, es, x, y, t);
+        if (t != null && !t.isEmpty() && shouldSyntheticBold(fonts, f)) {
+            textRaw(cs, f, es, x + syntheticBoldOffset(es), y, t);
+        }
+    }
+
+    private void textRawMaybeSyntheticBoldLeft(
+            PDPageContentStream cs,
+            Fonts fonts,
+            PDFont f,
+            int effectiveSize,
+            float x,
+            float y,
+            String t
+    ) throws Exception {
+        textRaw(cs, f, effectiveSize, x, y, t);
+        if (t != null && !t.isEmpty() && shouldSyntheticBold(fonts, f)) {
+            textRaw(cs, f, effectiveSize, x + syntheticBoldOffset(effectiveSize), y, t);
+        }
+    }
+
+    private void textMaybeSyntheticBoldCenter(
+            PDPageContentStream cs,
+            Fonts fonts,
+            PDFont f,
+            int s,
+            float w,
+            float y,
+            String t
+    ) throws Exception {
+        int es = effectiveFontSize(s);
+        float tw = f.getStringWidth(t) / 1000 * es;
+        float startX = (w - tw) / 2;
+        textRaw(cs, f, es, startX, y, t);
+        if (t != null && !t.isEmpty() && shouldSyntheticBold(fonts, f)) {
+            textRaw(cs, f, es, startX + syntheticBoldOffset(es), y, t);
+        }
+    }
+
     private void blackHeader(PDPageContentStream cs, Fonts fonts,
                          float x, float y, float w, String text) throws Exception {
 
@@ -577,11 +638,7 @@ public class IncomeTaxReportService {
 
         /* ---- Draw text ---- */
         cs.setNonStrokingColor(1f, 1f, 1f);
-        cs.beginText();
-        cs.setFont(font, fontSize);
-        cs.newLineAtOffset(x + 6, textY);
-        cs.showText(text);
-        cs.endText();
+        textRawMaybeSyntheticBoldLeft(cs, fonts, font, (int) Math.round(fontSize), x + 6, textY, text);
 
         cs.setNonStrokingColor(0f, 0f, 0f);
     }
@@ -616,7 +673,12 @@ public class IncomeTaxReportService {
         PDFont labelFont = fonts.normal();
         int labelSize = 9;
         text(cs, labelFont, labelSize, lx, y, l);
-        text(cs, valueBold ? fonts.bold() : fonts.normal(), 9, vx, y, v == null ? "" : v);
+        String valueText = v == null ? "" : v;
+        if (valueBold) {
+            textMaybeSyntheticBoldLeft(cs, fonts, fonts.bold(), 9, vx, y, valueText);
+        } else {
+            text(cs, fonts.normal(), 9, vx, y, valueText);
+        }
         return y - 14;
     }
 
@@ -652,7 +714,7 @@ public class IncomeTaxReportService {
     private float moneyBoldLabel(PDPageContentStream cs, Fonts fonts, float y, String l, double v, boolean boldAmount) throws Exception {
         PDFont labelFont = fonts.bold();
         int labelSize = 9;
-        text(cs, labelFont, labelSize, CONTENT_X, y, l);
+        textMaybeSyntheticBoldLeft(cs, fonts, labelFont, labelSize, CONTENT_X, y, l);
         drawLeaderLine(cs, labelFont, labelSize, CONTENT_X, y, l, AMOUNT_RUPEE_X - 6);
         PDFont f = boldAmount ? fonts.bold() : fonts.normal();
         drawCurrencyAmountRight(cs, fonts, f, 9, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, y, fmtNumber(v));
@@ -710,17 +772,17 @@ public class IncomeTaxReportService {
         if (numberOrNil == null) numberOrNil = "";
         String trimmed = numberOrNil.trim();
         if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("NIL")) {
-            textRight(cs, f, s, numberRightX, y, trimmed.isEmpty() ? "NIL" : trimmed);
+            textRightMaybeSyntheticBold(cs, fonts, f, s, numberRightX, y, trimmed.isEmpty() ? "NIL" : trimmed);
             return;
         }
 
         // Currency symbol column (fixed x), number column (right-aligned).
         String symbol = fonts.supportsRupee() ? "₹" : "Rs.";
-        text(cs, f, s, rupeeX, y, symbol);
-        textRight(cs, f, s, numberRightX, y, trimmed);
+        textMaybeSyntheticBoldLeft(cs, fonts, f, s, rupeeX, y, symbol);
+        textRightMaybeSyntheticBold(cs, fonts, f, s, numberRightX, y, trimmed);
     }
 
-    private void textRight(PDPageContentStream cs, PDFont f, int s, float rightX, float y, String t) throws Exception {
+    private void textRightMaybeSyntheticBold(PDPageContentStream cs, Fonts fonts, PDFont f, int s, float rightX, float y, String t) throws Exception {
         if (t == null) t = "";
         int es = effectiveFontSize(s);
         float tw;
@@ -732,6 +794,9 @@ public class IncomeTaxReportService {
         }
         float startX = rightX - tw;
         textRaw(cs, f, es, startX, y, t);
+        if (!t.isEmpty() && shouldSyntheticBold(fonts, f)) {
+            textRaw(cs, f, es, startX - syntheticBoldOffset(es), y, t);
+        }
     }
 
     private String fmtNumber(double v) {
@@ -793,10 +858,13 @@ public class IncomeTaxReportService {
 
     private Fonts loadFonts(PDDocument doc) throws Exception {
         // Prefer Unicode fonts so ₹ is available.
+        // 1) Try OS fonts (Windows dev machine).
         File[][] candidates = {
-                {new File("C:\\Windows\\Fonts\\arial.ttf"), new File("C:\\Windows\\Fonts\\arialbd.ttf")},
-                {new File("C:\\Windows\\Fonts\\segoeui.ttf"), new File("C:\\Windows\\Fonts\\segoeuib.ttf")},
-                {new File("C:\\Windows\\Fonts\\Nirmala.ttf"), new File("C:\\Windows\\Fonts\\NirmalaB.ttf")}
+            {new File("C:\\Windows\\Fonts\\arial.ttf"), new File("C:\\Windows\\Fonts\\arialbd.ttf")},
+            {new File("C:\\Windows\\Fonts\\segoeui.ttf"), new File("C:\\Windows\\Fonts\\segoeui.ttf")},
+            {new File("C:\\Windows\\Fonts\\segoeui.ttf"), new File("C:\\Windows\\Fonts\\segoeuib.ttf")},
+            {new File("C:\\Windows\\Fonts\\Nirmala.ttf"), new File("C:\\Windows\\Fonts\\Nirmala.ttf")},
+            {new File("C:\\Windows\\Fonts\\Nirmala.ttf"), new File("C:\\Windows\\Fonts\\NirmalaB.ttf")}
         };
 
         for (File[] pair : candidates) {
@@ -804,17 +872,39 @@ public class IncomeTaxReportService {
                 PDFont normal = PDType0Font.load(doc, pair[0]);
                 PDFont bold = PDType0Font.load(doc, pair[1]);
                 boolean rupeeOk = canShowText(normal, "₹") && canShowText(bold, "₹");
-                return new Fonts(normal, bold, rupeeOk);
+                if (rupeeOk) return new Fonts(normal, bold, true, false);
+                // If the OS font doesn't support ₹, keep searching.
             }
         }
 
-        // Fallback: standard 14 fonts (Helvetica does NOT support ₹)
-        return new Fonts(new PDType1Font(FontName.HELVETICA), new PDType1Font(FontName.HELVETICA_BOLD), false);
+        // 2) Try bundled font from resources (works on Linux servers too).
+        // Place at: src/main/resources/fonts/DejaVuSans.ttf
+        try (InputStream in = IncomeTaxReportService.class.getClassLoader().getResourceAsStream("fonts/DejaVuSans.ttf")) {
+            if (in != null) {
+                PDFont normal = PDType0Font.load(doc, in);
+
+                PDFont bold = normal;
+                boolean syntheticBold = true;
+                try (InputStream boldIn = IncomeTaxReportService.class.getClassLoader().getResourceAsStream("fonts/DejaVuSans-Bold.ttf")) {
+                    if (boldIn != null) {
+                        bold = PDType0Font.load(doc, boldIn);
+                        syntheticBold = false;
+                    }
+                }
+
+                boolean rupeeOk = canShowText(normal, "₹") && canShowText(bold, "₹");
+                if (rupeeOk) return new Fonts(normal, bold, true, syntheticBold);
+            }
+        }
+
+        // 3) Last resort: standard 14 fonts (Helvetica does NOT support ₹)
+        return new Fonts(new PDType1Font(FontName.HELVETICA), new PDType1Font(FontName.HELVETICA_BOLD), false, false);
     }
 
     private boolean canShowText(PDFont font, String text) {
         try {
-            font.getStringWidth(text);
+            // encode() is a stronger check than getStringWidth()
+            font.encode(text);
             return true;
         } catch (Exception ex) {
             return false;
