@@ -10,8 +10,6 @@ import pks.IncomeTax.model.Employee;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
 @Service
@@ -737,13 +735,49 @@ public class IncomeTaxReportService {
     }
 
     private String fmtNumber(double v) {
-        // Indian (lakh/crore) grouping with no decimals, e.g. 12,29,000
-        long rounded = Math.round(v);
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
-        symbols.setGroupingSeparator(',');
-        DecimalFormat df = new DecimalFormat("#,##,##0", symbols);
-        df.setGroupingUsed(true);
-        return df.format(rounded);
+        // Indian (lakh/crore) grouping, e.g. 12,29,000 or 12,29,000.50
+        // Uses explicit 3,2,2 grouping so the output is always Indian-format.
+        if (Double.isNaN(v) || Double.isInfinite(v)) return "0";
+
+        boolean neg = v < 0;
+        double abs = Math.abs(v);
+
+        // Two-decimal string, then drop decimals if .00
+        String s = String.format(Locale.US, "%.2f", abs);
+        String[] parts = s.split("\\.", 2);
+        String intPart = parts.length > 0 ? parts[0] : "0";
+        String fracPart = parts.length == 2 ? parts[1] : "00";
+
+        String grouped = groupIndianDigits(intPart);
+        if ("00".equals(fracPart)) {
+            return neg ? "-" + grouped : grouped;
+        }
+        return (neg ? "-" : "") + grouped + "." + fracPart;
+    }
+
+    private String groupIndianDigits(String digits) {
+        if (digits == null) return "0";
+        String d = digits.trim();
+        if (d.isEmpty()) return "0";
+        if (!d.matches("\\d+")) return d;
+
+        int n = d.length();
+        if (n <= 3) return d;
+
+        String last3 = d.substring(n - 3);
+        String rem = d.substring(0, n - 3);
+
+        StringBuilder sb = new StringBuilder();
+        int remLen = rem.length();
+        int firstGroupLen = remLen % 2;
+        if (firstGroupLen == 0) firstGroupLen = 2;
+
+        sb.append(rem, 0, firstGroupLen);
+        for (int i = firstGroupLen; i < remLen; i += 2) {
+            sb.append(',').append(rem, i, i + 2);
+        }
+        sb.append(',').append(last3);
+        return sb.toString();
     }
 
     private void text(PDPageContentStream cs, PDFont f, int s, float x, float y, String t) throws Exception {
