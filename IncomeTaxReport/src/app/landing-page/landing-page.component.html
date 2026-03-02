@@ -37,7 +37,7 @@
           </label>
 
           <label>Mobile Number
-            <input formControlName="mobileNumber" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" />
+            <input type="tel" formControlName="mobileNumber" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" />
             <span class="error" *ngIf="f.mobileNumber?.invalid && f.mobileNumber?.touched">Enter a valid 10-digit mobile number</span>
           </label>
         </div>

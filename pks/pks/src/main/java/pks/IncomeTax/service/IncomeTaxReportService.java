@@ -10,6 +10,9 @@ import pks.IncomeTax.model.Employee;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 @Service
 public class IncomeTaxReportService {
@@ -41,7 +44,7 @@ public class IncomeTaxReportService {
     private static final float DETAIL_AMOUNT_RUPEE_X = DETAIL_AMOUNT_RIGHT_X - AMOUNT_NUMBER_COL_W - RUPEE_GAP;
 
     private static final float TAX_TABLE_NUMBER_COL_W = 70f;
-    private static final float TAX_TABLE_W = 430f;
+    private static final float TAX_TABLE_W = 410f;
     private static final float BLACK_HEADER_WIDTH_FACTOR = 0.60f;
 
     // Small global font bump (applies to both text and numbers).
@@ -50,8 +53,10 @@ public class IncomeTaxReportService {
     private record Fonts(PDFont normal, PDFont bold, boolean supportsRupee) {
     }
 
-    private record TaxSummary(double taxBeforeRebate, double rebate87A, double netTax, double cess, double totalPayable) {
+    private record TaxSummary(double taxBeforeRelief, double marginalRelief, double netTax, double cess, double totalPayable) {
     }
+
+    private static final long MARGINAL_RELIEF_LIMIT = 1_200_000L;
 
     private long safe(Long v) {
         return v == null ? 0L : v.longValue();
@@ -250,18 +255,24 @@ public class IncomeTaxReportService {
 
                 /* ---------- FOOT NOTES ---------- */
                 y -= 12;
-                text(cs, fonts.normal(), 8, lx, y,
-                    "* Tax-free Income: Basic exemption limit is " + currencyMark(fonts) + " 4,00,000 for male/female taxpayers below 60 years of age.");
-                y -= 12;
-                text(cs, fonts.normal(), 8, lx, y,
-                    "Less: Tax Relief under Section 87A under New Tax Regime (Rebate up to " + currencyMark(fonts) + " 60,000 for total income up to " + currencyMark(fonts) + " 12 lakhs).");
-                y -= 12;
-                text(cs, fonts.normal(), 8, lx, y,
-                    "If total income exceeds " + currencyMark(fonts) + " 12 lakhs, Marginal Relief will be granted.");
+                // Wrap the combined note only in the space left of the amount column,
+                // so it flows into the next line naturally without colliding with the amount.
+                float footnoteWrapW = (AMOUNT_RUPEE_X - 6) - lx;
+
+                TaxSummary tax = computeTaxSummary(grossTotalIncomeRounded);
+                String note = "Less: Tax Relief under Section 87A under New Tax Regime (Rebate up to " + currencyMark(fonts)
+                    + " 60,000 for total income up to " + currencyMark(fonts) + " 12 lakhs)."
+                    + " If total income exceeds " + currencyMark(fonts)
+                    + " 12 lakhs, Marginal Relief will be granted (If applicable).";
+
+                // Right-align marginal relief amount like other amounts.
+                String mr = tax.marginalRelief() <= 0.0 ? "0" : fmtNumber(tax.marginalRelief());
+                float noteY = y;
+                drawCurrencyAmountRight(cs, fonts, fonts.bold(), 8, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, noteY, mr);
+                y = wrappedText(cs, fonts.normal(), 8, lx, noteY, footnoteWrapW, note);
 
                 /* ---------- FINAL TOTALS ---------- */
                 y -= 18;
-                TaxSummary tax = computeTaxSummary(grossTotalIncomeRounded);
                 long incomeTaxPaid = safe(e.getIncomeTaxPaid());
                 double remainingPayable =tax.totalPayable() - incomeTaxPaid;
                 y = money(cs, fonts, y, "Net Income Tax Payable", tax.netTax(), true);
@@ -416,20 +427,99 @@ public class IncomeTaxReportService {
 
     private TaxSummary computeTaxSummary(long taxableIncome) {
         double[] slabTax = computeSlabTaxes(taxableIncome);
-        double taxBeforeRebate = 0.0;
-        for (double v : slabTax) taxBeforeRebate += v;
+        double taxBeforeRelief = 0.0;
+        for (double v : slabTax) taxBeforeRelief += v;
 
-        // As per requirement: if income is <= 12L, rebate u/s 87A up to Rs. 60,000.
-        // With these slabs, tax up to 12L is <= 60,000, so net becomes 0.
-        double rebate87A = (taxableIncome <= 1_200_000L)
-                ? Math.min(60_000.0, taxBeforeRebate)
-                : 0.0;
+        // Marginal relief logic (threshold: 12 lakhs)
+        // 1) If total income <= 12L: marginal relief equals tax amount, net tax becomes 0
+        // 2) If total income > 12L and excess income (income-12L) < tax: relief = tax - excess, net tax = excess
+        // Else: no relief
+        double marginalRelief;
+        if (taxableIncome <= MARGINAL_RELIEF_LIMIT) {
+            marginalRelief = taxBeforeRelief;
+        } else {
+            double excessIncome = taxableIncome - (double) MARGINAL_RELIEF_LIMIT;
+            if (excessIncome < taxBeforeRelief) {
+                marginalRelief = taxBeforeRelief - excessIncome;
+            } else {
+                marginalRelief = 0.0;
+            }
+        }
 
-        double netTax = Math.max(0.0, taxBeforeRebate - rebate87A);
-        double cess = (taxableIncome > 1_200_000L) ? (netTax * 0.04) : 0.0;
+        double netTax = Math.max(0.0, taxBeforeRelief - marginalRelief);
+        double cess = (taxableIncome > MARGINAL_RELIEF_LIMIT) ? (netTax * 0.04) : 0.0;
         double totalPayable = netTax + cess;
 
-        return new TaxSummary(taxBeforeRebate, rebate87A, netTax, cess, totalPayable);
+        return new TaxSummary(taxBeforeRelief, marginalRelief, netTax, cess, totalPayable);
+    }
+
+    private float moneyAtX(
+            PDPageContentStream cs,
+            Fonts fonts,
+            float y,
+            float labelX,
+            String label,
+            double value,
+            boolean bold,
+            float rupeeX,
+            float rightX
+    ) throws Exception {
+        PDFont labelFont = fonts.normal();
+        int labelSize = 8;
+        text(cs, labelFont, labelSize, labelX, y, label);
+        drawLeaderLine(cs, labelFont, labelSize, labelX, y, label, rupeeX - 6);
+        PDFont f = bold ? fonts.bold() : fonts.normal();
+
+        String v = value <= 0.0 ? "NIL" : fmtNumber(value);
+        drawCurrencyAmountRight(cs, fonts, f, 8, rupeeX, rightX, y, v);
+        return y - 12;
+    }
+
+    private float wrappedText(
+            PDPageContentStream cs,
+            PDFont font,
+            int size,
+            float x,
+            float y,
+            float maxWidth,
+            String text
+    ) throws Exception {
+        if (text == null) return y;
+        String t = text.trim();
+        if (t.isEmpty()) return y;
+
+        int s = effectiveFontSize(size);
+        String[] words = t.split("\\s+");
+        StringBuilder line = new StringBuilder();
+        float lineH = 12f;
+
+        for (String w : words) {
+            String candidate = line.length() == 0 ? w : line + " " + w;
+            float width = font.getStringWidth(candidate) / 1000f * s;
+            if (width <= maxWidth) {
+                line.setLength(0);
+                line.append(candidate);
+            } else {
+                // emit current line
+                if (line.length() > 0) {
+                    text(cs, font, size, x, y, line.toString());
+                    y -= lineH;
+                    line.setLength(0);
+                    line.append(w);
+                } else {
+                    // single very long word; emit as-is
+                    text(cs, font, size, x, y, candidate);
+                    y -= lineH;
+                    line.setLength(0);
+                }
+            }
+        }
+
+        if (line.length() > 0) {
+            text(cs, font, size, x, y, line.toString());
+            y -= lineH;
+        }
+        return y;
     }
 
     private String buildFinancialYearShort(Employee e) {
@@ -647,7 +737,13 @@ public class IncomeTaxReportService {
     }
 
     private String fmtNumber(double v) {
-        return String.format("%,.2f", v);
+        // Indian (lakh/crore) grouping with no decimals, e.g. 12,29,000
+        long rounded = Math.round(v);
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ENGLISH);
+        symbols.setGroupingSeparator(',');
+        DecimalFormat df = new DecimalFormat("#,##,##0", symbols);
+        df.setGroupingUsed(true);
+        return df.format(rounded);
     }
 
     private void text(PDPageContentStream cs, PDFont f, int s, float x, float y, String t) throws Exception {

@@ -66,6 +66,15 @@ export class LandingPageComponent {
       reportDate: ['', [Validators.pattern(/^\d{8}$/)]],
       incomeTaxPaid: [null, [Validators.min(0)]]
     });
+
+    // Ensure mobile input is digits-only (also trims to 10 digits).
+    const mobileCtrl = this.form.get('mobileNumber');
+    mobileCtrl?.valueChanges.subscribe((raw: any) => {
+      const digits = (raw ?? '').toString().replace(/\D/g, '').slice(0, 10);
+      if ((raw ?? '') !== digits) {
+        mobileCtrl.setValue(digits, { emitEvent: false });
+      }
+    });
     // no fallback captcha in use
 
     const panFromUrl = (this.route.snapshot.queryParamMap.get('pan') || '').trim();
