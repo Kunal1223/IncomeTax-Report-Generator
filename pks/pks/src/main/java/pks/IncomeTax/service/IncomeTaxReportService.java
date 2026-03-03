@@ -369,7 +369,9 @@ public class IncomeTaxReportService {
         float rowH = 16;
         // Keep table slightly narrower than the main content width for better structure.
         float tableW = TAX_TABLE_W;
-        float[] cols = {x, x + 70, x + 260, x + 340, x + tableW};
+        // Column widths tuned to give the final tax-amount column more space
+        // without changing the overall table width.
+        float[] cols = {x, x + 70, x + 250, x + 320, x + tableW};
 
         int rows = 8;
         float tableH = rows * rowH;
