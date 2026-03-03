@@ -7,6 +7,8 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName;
 import org.springframework.stereotype.Service;
 import pks.IncomeTax.model.Employee;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -34,7 +36,7 @@ public class IncomeTaxReportService {
 
     // Currency layout: keep ₹ in a fixed vertical column, and the number right-aligned.
     private static final float AMOUNT_NUMBER_COL_W = 70f;
-    private static final float RUPEE_GAP = 4f;
+    private static final float RUPEE_GAP = 8f;
     private static final float AMOUNT_RUPEE_X = AMOUNT_RIGHT_X - AMOUNT_NUMBER_COL_W - RUPEE_GAP;
 
     // For Section B/C item rows: show amounts slightly left of the main amount column.
@@ -44,6 +46,8 @@ public class IncomeTaxReportService {
 
     private static final float TAX_TABLE_NUMBER_COL_W = 70f;
     private static final float TAX_TABLE_W = 410f;
+    // Keep ₹ inside the tax-table amount column; use a tighter gap than the global layout.
+    private static final float TAX_TABLE_RUPEE_GAP = 4f;
     private static final float BLACK_HEADER_WIDTH_FACTOR = 0.60f;
 
     // Small global font bump (applies to both text and numbers).
@@ -224,7 +228,9 @@ public class IncomeTaxReportService {
                 long housingLoanInterest = safe(e.getInterestOnHousingLoan());
                 long totalHouseProperty = houseRentIncome - housingLoanInterest;
                 y = moneyAt(cs, fonts, y, "(i) Income from House Rent", houseRentIncome, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
-                y = moneyAt(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", housingLoanInterest, false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X);
+                // Display-only negative sign as requested (input remains positive).
+                y = moneyAtDisplay(cs, fonts, y, "(ii) Interest on Housing Loan (u/s 24b)", housingLoanInterest,
+                    false, DETAIL_AMOUNT_RUPEE_X, DETAIL_AMOUNT_RIGHT_X, "(-) " + fmtNumber(housingLoanInterest));
                 y = moneyBoldLabel(cs, fonts, y, "Total Income from House Property", totalHouseProperty, true);
 
                 /* ---------- SECTION C ---------- */
@@ -268,7 +274,7 @@ public class IncomeTaxReportService {
                     + " 12 lakhs, Marginal Relief will be granted (If applicable).";
 
                 // Right-align marginal relief amount like other amounts.
-                String mr = tax.marginalRelief() <= 0.0 ? "0" : fmtNumber(tax.marginalRelief());
+                String mr = tax.marginalRelief() <= 0.0 ? fmtNumber(0.0) : fmtNumber(tax.marginalRelief());
                 float noteY = y;
                 drawCurrencyAmountRight(cs, fonts, fonts.bold(), 8, AMOUNT_RUPEE_X, AMOUNT_RIGHT_X, noteY, mr);
                 y = wrappedText(cs, fonts.normal(), 8, lx, noteY, footnoteWrapW, note);
@@ -276,12 +282,15 @@ public class IncomeTaxReportService {
                 /* ---------- FINAL TOTALS ---------- */
                 y -= 18;
                 long incomeTaxPaid = safe(e.getIncomeTaxPaid());
-                double remainingPayable =tax.totalPayable() - incomeTaxPaid;
                 y = money(cs, fonts, y, "Net Income Tax Payable", tax.netTax(), true);
+                // Round cess to the nearest rupee for display on this specific line.
+                double cessRounded = roundToNearestRupeeHalfUp(tax.cess());
+                double totalPayableDisplay = tax.netTax() + cessRounded;
+                double remainingPayable = totalPayableDisplay - incomeTaxPaid;
                 y = money(cs, fonts, y,
                     "Add : 4% Health and Education Cess on " + currencyMark(fonts) + " " + fmtNumber(tax.netTax()),
-                    tax.cess(), false);
-                y = moneyBoldLabel(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", tax.totalPayable(), true);
+                    cessRounded, false);
+                y = moneyBoldLabel(cs, fonts, y, "Total Income Tax and Health & Education Cess Payable", totalPayableDisplay, true);
                 y = money(cs, fonts, y, "Less: Income Tax paid / deducted monthly from salary (-)", incomeTaxPaid, false);
                 y = money(cs, fonts, y,
                     "Balance: Income Tax deposited / deducted through Salary for the month of February",
@@ -289,7 +298,7 @@ public class IncomeTaxReportService {
                 String fyShort = buildFinancialYearShort(e);
                 y = moneyBoldLabel(cs, fonts, y,
                     "Payable Income Tax and Health & Education Cess for Financial Year " + fyShort,
-                    tax.totalPayable(), true);
+                    totalPayableDisplay, true);
 
                 /* ---------- FOOTER ---------- */
                 String place = e.getPlace() != null ? e.getPlace() : "";
@@ -395,7 +404,10 @@ public class IncomeTaxReportService {
 
         float ty = y - 12;
         float cellRightX = cols[4] - RIGHT_PADDING;
-        float cellRupeeX = cellRightX - TAX_TABLE_NUMBER_COL_W - RUPEE_GAP;
+        float amountColLeftX = cols[3];
+        float cellRupeeX = cellRightX - TAX_TABLE_NUMBER_COL_W - TAX_TABLE_RUPEE_GAP;
+        // If the global gap/width would push ₹ into the previous column, clamp it.
+        cellRupeeX = Math.max(amountColLeftX + 6, cellRupeeX);
         for (String[] r : data) {
             text(cs, fonts.normal(), 9, cols[0] + 2, ty, r[0]);
             text(cs, fonts.normal(), 9, cols[1] + 2, ty, r[1]);
@@ -711,6 +723,34 @@ public class IncomeTaxReportService {
         return y - 14;
     }
 
+    private float moneyAtDisplay(
+            PDPageContentStream cs,
+            Fonts fonts,
+            float y,
+            String l,
+            double v,
+            boolean bold,
+            float rupeeX,
+            float rightX,
+            String displayNumber
+    ) throws Exception {
+        PDFont labelFont = fonts.normal();
+        int labelSize = 9;
+        text(cs, labelFont, labelSize, CONTENT_X, y, l);
+        drawLeaderLine(cs, labelFont, labelSize, CONTENT_X, y, l, rupeeX - 6);
+        PDFont f = bold ? fonts.bold() : fonts.normal();
+        String out = displayNumber != null ? displayNumber : fmtNumber(v);
+        drawCurrencyAmountRight(cs, fonts, f, 9, rupeeX, rightX, y, out);
+        return y - 14;
+    }
+
+    private double roundToNearestRupeeHalfUp(double v) {
+        if (Double.isNaN(v) || Double.isInfinite(v)) return 0.0;
+        return BigDecimal.valueOf(v)
+                .setScale(0, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
     private float moneyBoldLabel(PDPageContentStream cs, Fonts fonts, float y, String l, double v, boolean boldAmount) throws Exception {
         PDFont labelFont = fonts.bold();
         int labelSize = 9;
@@ -800,23 +840,22 @@ public class IncomeTaxReportService {
     }
 
     private String fmtNumber(double v) {
-        // Indian (lakh/crore) grouping, e.g. 12,29,000 or 12,29,000.50
-        // Uses explicit 3,2,2 grouping so the output is always Indian-format.
-        if (Double.isNaN(v) || Double.isInfinite(v)) return "0";
+        // Indian (lakh/crore) grouping with EXACTLY two decimals, rounded HALF_UP.
+        // Example: 7,43,000.00; 7,43,000.456 -> 7,43,000.46
+        if (Double.isNaN(v) || Double.isInfinite(v)) return "0.00";
 
-        boolean neg = v < 0;
-        double abs = Math.abs(v);
+        BigDecimal bd = BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP);
+        boolean neg = bd.signum() < 0;
+        bd = bd.abs();
 
-        // Two-decimal string, then drop decimals if .00
-        String s = String.format(Locale.US, "%.2f", abs);
+        String s = bd.toPlainString();
         String[] parts = s.split("\\.", 2);
         String intPart = parts.length > 0 ? parts[0] : "0";
         String fracPart = parts.length == 2 ? parts[1] : "00";
+        if (fracPart.length() == 1) fracPart = fracPart + "0";
+        if (fracPart.length() > 2) fracPart = fracPart.substring(0, 2);
 
         String grouped = groupIndianDigits(intPart);
-        if ("00".equals(fracPart)) {
-            return neg ? "-" + grouped : grouped;
-        }
         return (neg ? "-" : "") + grouped + "." + fracPart;
     }
 
