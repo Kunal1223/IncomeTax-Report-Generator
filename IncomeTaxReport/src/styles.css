@@ -40,5 +40,230 @@ body::before{
 .it-card{background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
 	border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px;color:#eaf0ff}
 
+/* Landing page (Home) — scoped styles */
+.landing{
+	display:flex;
+	flex-direction:column;
+	gap:34px;
+	/* Prevent caret/text-selection so the landing page doesn't feel editable */
+	-webkit-user-select:none;
+	user-select:none;
+	cursor:default;
+}
+
+/* Allow selection/typing where it matters */
+.landing input,
+.landing textarea{
+	-webkit-user-select:text;
+	user-select:text;
+	cursor:text;
+	caret-color:auto;
+}
+
+/* Interactive affordances */
+.landing button{cursor:pointer}
+.landing details > summary{cursor:pointer}
+
+.landing > section{
+	will-change:transform, opacity;
+	animation: sectionIn 640ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.landing > section:nth-of-type(1){animation-delay:60ms}
+.landing > section:nth-of-type(2){animation-delay:120ms}
+.landing > section:nth-of-type(3){animation-delay:160ms}
+.landing > section:nth-of-type(4){animation-delay:200ms}
+.landing > section:nth-of-type(5){animation-delay:240ms}
+.landing > section:nth-of-type(6){animation-delay:280ms}
+
+.landing .hero-card{
+	width:100%;
+	display:flex;
+	gap:24px;
+	padding:30px;
+	border-radius:14px;
+	align-items:center;
+	margin-top: 60px;
+}
+
+.landing .hero-left{flex:1;min-width:320px}
+.landing .hero-right{width:360px;display:flex;align-items:center;justify-content:center}
+
+.landing .hero-title{margin:0 0 10px;font-size:2.35rem;line-height:1.12;font-weight:800;color:#eaf0ff}
+.landing .hero-subtitle{margin:0;font-size:1.04rem;font-weight:500;line-height:1.6;color:rgba(234,240,255,0.74);max-width:62ch}
+.landing .hero-note{margin:14px 0 0;font-size:0.92rem;color:rgba(234,240,255,0.62);line-height:1.55}
+
+.landing .hero-points{
+	margin:10px 0 0;
+	padding:0;
+	list-style:none;
+	display:grid;
+	gap:8px;
+	max-width:68ch;
+}
+
+.landing .hero-points li{
+	position:relative;
+	padding-left:16px;
+	color:rgba(234,240,255,0.72);
+	line-height:1.6;
+}
+
+.landing .hero-points li::before{
+	content:'•';
+	position:absolute;
+	left:0;
+	top:0;
+	color:rgba(234,240,255,0.55);
+}
+
+.landing .hero-actions{display:flex;gap:10px;margin:18px 0 12px;flex-wrap:wrap}
+
+.landing button{
+	padding:12px 18px;
+	border-radius:10px;
+	border:0;
+	cursor:pointer;
+	transition: transform 180ms ease, filter 180ms ease;
+}
+
+.landing button:hover{transform:translateY(-2px);filter:brightness(1.03)}
+.landing button:active{transform:translateY(0px)}
+
+.landing .primary{background:linear-gradient(90deg,#1976d2,#4a90e2);color:#fff}
+.landing .secondary{background:rgba(255,255,255,0.06);color:#eaf0ff;border:1px solid rgba(255,255,255,0.10)}
+
+/* Moving border animation for landing page buttons */
+.landing .primary,
+.landing .secondary{
+	position:relative;
+	overflow:hidden;
+	z-index:0;
+}
+
+.landing .primary::before,
+.landing .secondary::before{
+	content:'';
+	position:absolute;
+	inset:0;
+	border-radius:inherit;
+	padding:2px;
+	background:linear-gradient(90deg,#4a90e2,#1976d2,#4a90e2);
+	background-size:220% 220%;
+	animation:borderMove 2.6s linear infinite;
+	pointer-events:none;
+	mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite:xor;
+	mask-composite:exclude;
+	z-index:1;
+}
+
+.landing .search-row{display:flex;gap:10px;align-items:center;width:100%;margin-top:10px}
+.landing .search-input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#cdcaca}
+.landing .search-input::placeholder{color:rgba(234,240,255,0.55)}
+.landing .search-btn{padding:10px 14px;border-radius:10px;background:#1976d2;color:#fff;border:0}
+
+.landing .hero-img{width:100%;max-width:360px;height:auto;border-radius:12px}
+
+/* Section spacing */
+.landing .lp-section{
+	scroll-margin-top:90px;
+	margin-top: 50px;
+	padding:28px;
+	border-radius:14px;
+	border:1px solid rgba(255,255,255,0.06);
+	background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
+}
+
+.landing .section-head{margin:0 0 18px}
+.landing .section-title{margin:0 0 6px;font-size:1.6rem;letter-spacing:0.2px}
+.landing .section-subtitle{margin:0;color:rgba(234,240,255,0.68);line-height:1.6;max-width:70ch}
+
+.landing .card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.landing .lp-card{padding:18px}
+.landing .card-title{margin:0 0 8px;font-size:1.05rem}
+.landing .card-text{margin:0;color:rgba(234,240,255,0.70);line-height:1.65}
+
+.landing .steps{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.landing .step{padding:18px}
+
+.landing .cta-row{margin-top:18px;display:flex;justify-content:flex-start}
+
+.landing .feature-list{padding:18px}
+.landing .bullets{margin:0;padding-left:18px;color:rgba(234,240,255,0.72);line-height:1.75}
+.landing .bullets li{margin:8px 0}
+
+.landing .about{padding:18px}
+.landing .about-note{margin:10px 0 0;color:rgba(234,240,255,0.58);font-size:0.94rem;line-height:1.65}
+
+.landing .faq{padding:14px 18px}
+.landing .faq-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.landing .faq-item:last-child{border-bottom:0}
+
+.landing .faq-item summary{
+	cursor:pointer;
+	font-weight:650;
+	color:rgba(234,240,255,0.92);
+	list-style:none;
+	padding:8px 0;
+	outline:none;
+}
+
+.landing .faq-item summary::-webkit-details-marker{display:none}
+.landing .faq-item summary::after{content:'+';float:right;color:rgba(234,240,255,0.70)}
+.landing .faq-item[open] summary::after{content:'–'}
+
+.landing .faq-item summary:focus-visible{border-radius:10px;box-shadow:0 0 0 2px rgba(74,144,226,0.22)}
+.landing .faq-item p{margin:10px 0 0;color:rgba(234,240,255,0.70);line-height:1.65}
+
+/* Card hover polish (landing only) */
+.landing .lp-card.it-card,
+.landing .step.it-card,
+.landing .feature-list.it-card,
+.landing .about.it-card,
+.landing .faq.it-card{transition:transform 220ms ease, border-color 220ms ease, background 220ms ease}
+
+.landing .lp-card.it-card:hover,
+.landing .step.it-card:hover,
+.landing .feature-list.it-card:hover,
+.landing .about.it-card:hover,
+.landing .faq.it-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.12)}
+
+@media (max-width:900px){
+	.landing .hero-card{flex-direction:column}
+	.landing .hero-right{width:100%}
+	.landing .hero-left{min-width:auto;text-align:center}
+	.landing .hero-actions{justify-content:center}
+	.landing .search-row{justify-content:center}
+	.landing .hero-title{font-size:1.85rem}
+	.landing .cta-row{justify-content:center}
+}
+
+@media (max-width:800px){
+	.landing .card-grid,
+	.landing .steps{grid-template-columns:1fr}
+	.landing .search-row{flex-direction:column;align-items:stretch}
+	.landing .hero-card{padding:20px}
+	.landing .lp-section{padding:20px;border-radius:12px}
+}
+
+@keyframes sectionIn{
+	from{opacity:0;transform:translateY(10px) scale(0.995)}
+	to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+@keyframes borderMove{
+	0%{background-position:0% 50%}
+	100%{background-position:200% 50%}
+}
+
+@media (prefers-reduced-motion: reduce){
+	.landing > section{animation:none}
+	.landing button{transition:none}
+	.landing .primary::before,
+	.landing .secondary::before{animation:none}
+}
+
 @media (max-width:700px){.page-wrap{padding:12px;margin:12px}}
 

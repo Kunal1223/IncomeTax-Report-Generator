@@ -1,34 +1,172 @@
 <div class="page-wrap">
-  <div class="hero-card it-card">
-  <div class="hero-left">
-      <h1 class="hero-title">Tax<br />return</h1>
-      <h3 class="hero-subtitle">Generate your income tax report in minutes.</h3>
-      <p class="hero-text">
-        Enter employee and salary details, then download a ready-to-use PDF report.
-      </p>
+  <main class="landing" aria-label="mycleartax.com landing page">
+    <!-- SEO structured data (JSON-LD) -->
+    <script type="application/ld+json" [textContent]="appJsonLd"></script>
+    <script type="application/ld+json" [textContent]="faqJsonLd"></script>
 
-      <div class="hero-actions">
-        <button type="button" class="primary" (click)="goToNewForm()">Fill New Form</button>
-        <button type="button" class="secondary" (click)="toggleEdit()">Edit / Update</button>
+    <!-- Hero -->
+    <section class="hero-card it-card" aria-label="Hero">
+      <div class="hero-left">
+        <h1 class="hero-title">Free Income Tax Calculator for Salaried Persons</h1>
+        <p class="hero-subtitle">
+          Generate your Income Tax Schedule and download a professional PDF in minutes. Compare Old vs. New regimes
+          instantly.
+        </p>
+
+
+        <div class="hero-actions">
+          <button type="button" class="primary" (click)="goToNewForm()">Fill New Form</button>
+          <button type="button" class="secondary" (click)="toggleEdit()">Edit / Update</button>
+        </div>
+
+        <div class="search-row" *ngIf="editOpen" aria-label="Edit existing report">
+          <input
+            class="search-input"
+            [(ngModel)]="searchPan"
+            name="searchPan"
+            placeholder="Enter PAN to edit existing details" />
+          <button type="button" class="search-btn" (click)="searchAndEdit()" [disabled]="searching">
+            {{ searching ? 'Searching...' : 'Search' }}
+          </button>
+        </div>
       </div>
 
-      <div class="search-row" *ngIf="editOpen">
-        <input
-          class="search-input"
-          [(ngModel)]="searchPan"
-          name="searchPan"
-          placeholder="Please enter the PAN number" />
-        <button type="button" class="search-btn" (click)="searchAndEdit()" [disabled]="searching">
-          {{ searching ? 'Searching...' : 'Search' }}
-        </button>
+      <div class="hero-right" aria-hidden="true">
+        <img
+          class="hero-img"
+          src="/Tax.png"
+          alt="" />
       </div>
-    </div>
+    </section>
+    
 
-    <div class="hero-right">
-      <img
-        class="hero-img"
-        src="https://png.pngtree.com/png-vector/20210601/ourmid/pngtree-tax-consultant-payment-analysis-data-png-image_3401114.jpg"
-        alt="Tax return illustration" />
-    </div>
-  </div>
+    <!-- Why choose -->
+    <section class="lp-section" aria-label="Why choose" id="why">
+      <header class="section-head">
+        <h2 class="section-title">Why Choose mycleartax.com?</h2>
+        <p class="section-subtitle">A calculator designed to be fast, practical, and salary-focused.</p>
+      </header>
+
+      <div class="card-grid">
+        <article class="lp-card it-card">
+          <h3 class="card-title">Tailored for Salaries</h3>
+          <p class="card-text">Built to handle Indian salary components like Basic, HRA, and Special Allowances.</p>
+        </article>
+
+        <article class="lp-card it-card">
+          <h3 class="card-title">Old vs. New Regime Comparison</h3>
+          <p class="card-text">See your tax liability under both regimes so you can choose what saves you more.</p>
+        </article>
+
+        <article class="lp-card it-card">
+          <h3 class="card-title">Instant PDF Download</h3>
+          <p class="card-text">Generate a clean, professional PDF summary for your records or employer.</p>
+        </article>
+
+        <article class="lp-card it-card">
+          <h3 class="card-title">Secure &amp; Private</h3>
+          <p class="card-text">Designed for quick calculations and minimal data exposure.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="lp-section" aria-label="How it works" id="how">
+      <header class="section-head">
+        <h2 class="section-title">How mycleartax.com Works</h2>
+        <p class="section-subtitle">A clear workflow from input to a shareable tax schedule.</p>
+      </header>
+
+      <ol class="steps">
+        <li class="step it-card">
+          <h3 class="card-title">1) Enter Income Details</h3>
+          <p class="card-text">Input your Gross Salary and other income like House Rent, Medical Allowances, Special Pay etc.</p>
+        </li>
+        <li class="step it-card">
+          <h3 class="card-title">2) Add Exemptions &amp; Deductions</h3>
+          <p class="card-text">
+            Claim HRA, Standard Deduction (₹75,000 for FY 2025-26), and investments under Section 80C, 80D, or 80E.
+          </p>
+        </li>
+        <li class="step it-card">
+          <h3 class="card-title">3) Review Comparison</h3>
+          <p class="card-text">View a side-by-side breakdown of the Old vs. New Tax Regimes.</p>
+        </li>
+        <li class="step it-card">
+          <h3 class="card-title">4) Download PDF</h3>
+          <p class="card-text">Save your final tax schedule as a PDF for filing and documentation.</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Features -->
+    <section class="lp-section" aria-label="Features" id="features">
+      <header class="section-head">
+        <h2 class="section-title">Detailed Features at mycleartax.com</h2>
+        <p class="section-subtitle">Designed for accuracy, completeness, and a professional PDF output.</p>
+      </header>
+
+      <div class="feature-list it-card">
+        <ul class="bullets">
+          <li><strong>Comprehensive Deduction Support:</strong> LIC, PPF, ELSS, 80D, 80E and more.</li>
+          <li><strong>Accurate Slab Rates:</strong> Updated for Finance Act changes to support AY 2025-26 and AY 2026-27.</li>
+          <li><strong>HRA Exemption Tool:</strong> Calculate HRA exemptions based on city and rent paid.</li>
+          <li>
+            <strong>Cleaner Outputs:</strong> A single-page PDF schedule that’s easy to share with your employer or keep for records.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section class="lp-section" aria-label="About" id="about">
+      <header class="section-head">
+        <h2 class="section-title">About mycleartax.com</h2>
+        <p class="section-subtitle">Simple, salary-first tools for faster tax planning.</p>
+      </header>
+      <div class="about it-card">
+        <p class="card-text">
+          mycleartax.com is built to help salaried individuals estimate income tax
+          quickly and confidently. We focus on
+          practical inputs (salary components, deductions, and other income) and deliver a clear Old vs. New regime
+          comparison — plus a professional PDF calculation sheet you can download in minutes.
+        </p>
+        <p class="about-note">
+          Note: This tool provides an estimate for planning and record-keeping; always verify figures before filing.
+        </p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="lp-section" aria-label="FAQ" id="faq">
+      <header class="section-head">
+        <h2 class="section-title">Frequently Asked Questions (FAQ)</h2>
+        <p class="section-subtitle">Quick answers to common questions.</p>
+      </header>
+
+      <div class="faq it-card">
+        <details class="faq-item">
+          <summary>Is this calculator free?</summary>
+          <p>Yes, the tool and PDF download are 100% free for all users.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Which tax regime is better for me?</summary>
+          <p>Our tool provides a direct comparison based on your specific deductions to help you decide.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Do I need to sign up?</summary>
+          <p>No, you can use the calculator and get your PDF without creating an account.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>How much is the Standard Deduction?</summary>
+          <p>
+            For salaried individuals, a standard deduction of ₹75,000 is applicable under the New Regime for FY 2025-26.
+          </p>
+        </details>
+      </div>
+    </section>
+  </main>
 </div>

@@ -1,14 +1,8 @@
 <header class="app-nav">
   <div class="app-nav-inner">
-    <div
-      class="nav-brand"
-      (click)="goHome()"
-      (keyup.enter)="goHome()"
-      role="button"
-      tabindex="0"
-      aria-label="P&A Home">
-      <span class="logo-p">P</span><span class="logo-amp">&amp;</span><span class="logo-a">A</span>
-    </div>
+    <a class="nav-brand logo" [routerLink]="['/']" aria-label="Go to home">
+      <img class="logo-img" src="/pushkar.png" alt="Site logo" />
+    </a>
 
     <nav class="nav-actions" aria-label="Main navigation">
       <button type="button" class="nav-icon" (click)="goHome()" aria-label="Home">

@@ -33,21 +33,24 @@
   line-height: 1;
   cursor: pointer;
   user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 10px;
 }
 
-.logo-p,
-.logo-a {
-  font-weight: 900;
-  background: linear-gradient(90deg, var(--accent), rgba(234,240,255,0.95));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.nav-brand:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74,144,226,0.22);
 }
 
-.logo-amp {
-  font-weight: 700;
-  color: rgba(234,240,255,0.78);
-  margin: 0 2px;
+.logo-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  display: block;
 }
 
 .nav-actions {
